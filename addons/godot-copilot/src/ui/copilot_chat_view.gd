@@ -427,7 +427,7 @@ func _make_notice(text: String, severity: String) -> void:
 
 func _make_action_button(symbol_name: String, tooltip: String) -> CopilotMd3IconButton:
 	var button := CopilotMd3IconButton.new()
-	button.configure(_scheme, CopilotMd3Button.VARIANT_STANDARD, "", symbol_name, "")
+	button.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", symbol_name, "")
 	button.tooltip_text = tooltip
 	button.custom_minimum_size = Vector2(28, 28)
 	button.add_theme_constant_override("icon_max_width", 16)

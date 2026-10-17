@@ -11,8 +11,6 @@ signal resolved(request_id: String, allowed: bool, remember: bool, scope_index: 
 const BADGE_SIZE := 28
 const BADGE_ICON := 16
 
-var _scheme: CopilotMd3Scheme = null
-
 var _badge: PanelContainer = null
 var _badge_icon: TextureRect = null
 var _title_label: Label = null

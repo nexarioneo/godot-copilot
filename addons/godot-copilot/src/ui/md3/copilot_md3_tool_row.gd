@@ -126,7 +126,7 @@ func _ensure_built() -> void:
 	_root.add_child(_header)
 
 	_chevron = CopilotMd3IconButton.new()
-	_chevron.configure(_scheme, CopilotMd3Button.VARIANT_STANDARD, "", "expand_more", "")
+	_chevron.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", "expand_more", "")
 	_chevron.disabled = true
 	_chevron.pressed.connect(_toggle_output)
 	_header.add_child(_chevron)

@@ -238,7 +238,7 @@ func _build_status_strip(parent: Control) -> void:
 
 func _header_button(parent: Control, symbol_name: String, tooltip: String, action: Callable) -> CopilotMd3IconButton:
 	var button := CopilotMd3IconButton.new()
-	button.configure(_scheme, CopilotMd3Button.VARIANT_STANDARD, "", symbol_name, "")
+	button.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", symbol_name, "")
 	button.tooltip_text = tooltip
 	button.pressed.connect(action)
 	parent.add_child(button)

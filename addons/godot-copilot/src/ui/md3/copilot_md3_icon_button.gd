@@ -8,7 +8,7 @@ extends CopilotMd3Button
 const VARIANT_STANDARD := "standard"
 
 const SIZE := 40
-const ICON_SIZE := 24
+const BUTTON_ICON_SIZE := 24
 
 func _ready() -> void:
 	super._ready()
@@ -22,7 +22,7 @@ func _apply() -> void:
 	if _scheme == null:
 		return
 	custom_minimum_size = Vector2(SIZE, SIZE)
-	add_theme_constant_override("icon_max_width", ICON_SIZE)
+	add_theme_constant_override("icon_max_width", BUTTON_ICON_SIZE)
 	_connect_toggle()
 
 	var selected := toggle_mode and button_pressed
