@@ -49,6 +49,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Chat rendering keeps the `add_text()`-only rule (no BBCode evaluation) and the
   pinned-to-bottom auto-scroll; the sessions menu uses a styled `PopupMenu` until
   `CopilotMd3Menu` lands in the dialogs phase.
+- **Chat surfaces reuse `CopilotMd3Card`**: user bubbles, assistant cards and
+  notices configure role, padding and corner overrides (`set_roles`,
+  `set_padding`, `set_corner_radii`) instead of building one-off styleboxes; the
+  permission card also applies its inherited elevated surface again (`super._apply`).
 
 ---
 

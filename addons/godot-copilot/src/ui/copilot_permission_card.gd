@@ -154,6 +154,7 @@ func _build_ui() -> void:
 func _apply() -> void:
 	if _scheme == null or _title_label == null:
 		return
+	super._apply()
 	var badge_box := _scheme.box("tertiary-container", CopilotMd3Tokens.corner_radius("full", Vector2(BADGE_SIZE, BADGE_SIZE)))
 	badge_box.content_margin_left = 0
 	badge_box.content_margin_right = 0

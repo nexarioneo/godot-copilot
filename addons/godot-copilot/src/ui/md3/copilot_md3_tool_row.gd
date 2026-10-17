@@ -273,19 +273,19 @@ func _refresh_output_text() -> void:
 	_output_button.visible = truncated
 	_output_button.text = "Show less" if _output_fully_shown else "Show more"
 
+static var _mono_font_cache: Font = null
+
 static func mono_font() -> Font:
+	# The editor's configured code font. Deliberately no EditorFonts theme
+	# lookup here: EditorTheme warns when its mono_font entry has an invalid
+	# Ref, so querying the theme would spam warnings during startup.
+	if _mono_font_cache != null:
+		return _mono_font_cache
 	var settings := EditorInterface.get_editor_settings()
 	if settings != null:
 		var configured: Variant = settings.get_setting("interface/editor/code_font")
 		if configured is Font:
-			return configured as Font
-		if configured is String and not (configured as String).is_empty() and ResourceLoader.exists(configured as String):
-			return load(configured as String) as Font
-	var theme := EditorInterface.get_editor_theme()
-	if theme != null:
-		for font_name in ["mono_font", "source", "mono"]:
-			if theme.has_font(font_name, "EditorFonts"):
-				var theme_font := theme.get_font(font_name, "EditorFonts")
-				if theme_font != null:
-					return theme_font
-	return null
+			_mono_font_cache = configured as Font
+		elif configured is String and not (configured as String).is_empty() and ResourceLoader.exists(configured as String):
+			_mono_font_cache = load(configured as String) as Font
+	return _mono_font_cache

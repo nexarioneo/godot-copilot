@@ -257,8 +257,11 @@ General rules for every component in the library:
 
 - Base: `PanelContainer`. Variants: elevated (container-low + level 1), filled
   (container-highest), outlined (surface + 1px outline-variant).
-- Used for: permission card (elevated, via subclass), panel sections in dialogs;
-  chat message cards are built inline by the chat view with the same role pairs.
+- Reusable composites override roles without new classes: `set_roles(fill_role,
+  border_role, border_width, shadow_level)`, `set_padding(left, top, right,
+  bottom)` and `set_corner_radii(top_left, top_right, bottom_right, bottom_left)`.
+- Used for: permission card (elevated, via subclass), chat surfaces (user bubble,
+  assistant card, notices), panel sections in dialogs.
 
 ### 4.6 CopilotMd3ListItem
 

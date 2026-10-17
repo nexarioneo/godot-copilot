@@ -281,14 +281,11 @@ func _make_user_bubble(text: String) -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 
-	var bubble := PanelContainer.new()
-	var bubble_box := _scheme.box("primary-container", 16)
-	bubble_box.corner_radius_bottom_right = 4
-	bubble_box.content_margin_left = PAD_H
-	bubble_box.content_margin_right = PAD_H
-	bubble_box.content_margin_top = CopilotMd3Tokens.spacing("s")
-	bubble_box.content_margin_bottom = CopilotMd3Tokens.spacing("s")
-	bubble.add_theme_stylebox_override("panel", bubble_box)
+	var bubble := CopilotMd3Card.new()
+	bubble.configure(_scheme, CopilotMd3Card.VARIANT_FILLED)
+	bubble.set_roles("primary-container")
+	bubble.set_corner_radii(16, 16, 4, 16)
+	bubble.set_padding(PAD_H, CopilotMd3Tokens.spacing("s"), PAD_H, CopilotMd3Tokens.spacing("s"))
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	row.add_child(column)
@@ -314,14 +311,11 @@ func _make_user_bubble(text: String) -> void:
 	_reflow_user_bubbles()
 
 func _make_assistant_card(text: String) -> Dictionary:
-	var card := PanelContainer.new()
-	var card_box := _scheme.box("surface-container-high", 16)
-	card_box.corner_radius_bottom_left = 4
-	card_box.content_margin_left = PAD_H
-	card_box.content_margin_right = PAD_H + 8
-	card_box.content_margin_top = CopilotMd3Tokens.spacing("s")
-	card_box.content_margin_bottom = CopilotMd3Tokens.spacing("s")
-	card.add_theme_stylebox_override("panel", card_box)
+	var card := CopilotMd3Card.new()
+	card.configure(_scheme, CopilotMd3Card.VARIANT_FILLED)
+	card.set_roles("surface-container-high")
+	card.set_corner_radii(16, 16, 16, 4)
+	card.set_padding(PAD_H, CopilotMd3Tokens.spacing("s"), PAD_H + 8, CopilotMd3Tokens.spacing("s"))
 	_content.add_child(card)
 
 	var box := VBoxContainer.new()
@@ -378,7 +372,8 @@ func _make_assistant_card(text: String) -> Dictionary:
 	return {"panel": card, "content": content, "caret": caret, "actions": actions}
 
 func _make_notice(text: String, severity: String) -> void:
-	var panel := PanelContainer.new()
+	var panel := CopilotMd3Card.new()
+	panel.configure(_scheme, CopilotMd3Card.VARIANT_FILLED)
 	var fill := "surface-container-low"
 	var content_role := "on-surface-variant"
 	var icon_color_role := "status-info"
@@ -392,12 +387,9 @@ func _make_notice(text: String, severity: String) -> void:
 		content_role = "on-error-container"
 		icon_color_role = "error"
 		icon_name = "error"
-	var box := _scheme.box(fill, CopilotMd3Tokens.corner_radius("medium", Vector2(0, 32)))
-	box.content_margin_left = PAD_H
-	box.content_margin_right = PAD_H
-	box.content_margin_top = CopilotMd3Tokens.spacing("s")
-	box.content_margin_bottom = CopilotMd3Tokens.spacing("s")
-	panel.add_theme_stylebox_override("panel", box)
+	panel.set_roles(fill)
+	panel.set_corner_radii(12, 12, 12, 12)
+	panel.set_padding(PAD_H, CopilotMd3Tokens.spacing("s"), PAD_H, CopilotMd3Tokens.spacing("s"))
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
