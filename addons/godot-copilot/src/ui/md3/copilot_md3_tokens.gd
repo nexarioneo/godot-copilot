@@ -267,6 +267,14 @@ static func font_for_weight(weight: int) -> Font:
 	var path: String = CopilotPaths.FONTS_MEDIUM if weight >= 500 else CopilotPaths.FONTS_REGULAR
 	return _load_font(path)
 
+static func apply_text(control: Control, style: String) -> void:
+	# Applies font and size overrides for a type-scale style; controls whose
+	# font override keys differ handle their own overrides.
+	var font := font_for_weight(type_weight(style))
+	if font != null:
+		control.add_theme_font_override("font", font)
+	control.add_theme_font_size_override("font_size", type_size(style))
+
 # --- Token accessors ---------------------------------------------------------
 
 static func type_size(style: String) -> int:
@@ -289,6 +297,14 @@ static func corner_radius(shape: String, size: Vector2) -> int:
 
 static func spacing(name: String) -> int:
 	return int(SPACING.get(name, 0))
+
+static func apply_shadow(sb: StyleBoxFlat, level: int) -> void:
+	var cfg: Dictionary = ELEVATION_SHADOW.get(clampi(level, 0, 5), {})
+	if cfg.is_empty():
+		return
+	sb.shadow_color = Color(0.0, 0.0, 0.0, float(cfg.get("alpha", 0.0)))
+	sb.shadow_size = int(cfg.get("size", 0))
+	sb.shadow_offset = Vector2(0.0, float(cfg.get("offset", 0)))
 
 static func _load_font(path: String) -> Font:
 	if _font_cache.has(path):

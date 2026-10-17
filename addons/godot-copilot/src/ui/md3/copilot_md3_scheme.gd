@@ -11,11 +11,25 @@ const MODE_DARK := "dark"
 var mode: String = MODE_LIGHT
 var _roles: Dictionary = {}
 
+static var _light_cache: CopilotMd3Scheme = null
+static var _dark_cache: CopilotMd3Scheme = null
+
 static func light() -> CopilotMd3Scheme:
 	return _from_table(CopilotMd3Tokens.ROLES_LIGHT, MODE_LIGHT)
 
 static func dark() -> CopilotMd3Scheme:
 	return _from_table(CopilotMd3Tokens.ROLES_DARK, MODE_DARK)
+
+static func for_node(node: Node) -> CopilotMd3Scheme:
+	# Standalone accessor used by components that are not given an explicit
+	# scheme (the dock can still inject one with set_scheme()).
+	if detect_mode(node) == MODE_LIGHT:
+		if _light_cache == null:
+			_light_cache = light()
+		return _light_cache
+	if _dark_cache == null:
+		_dark_cache = dark()
+	return _dark_cache
 
 static func detect_mode(node: Node) -> String:
 	# Reads the editor theme base color when the caller can resolve theme
@@ -57,3 +71,19 @@ func state_overlay(content_role: String, state: String) -> Color:
 
 func disabled_content(content_role: String) -> Color:
 	return alpha(content_role, CopilotMd3Tokens.DISABLED_CONTENT_OPACITY)
+
+func box(fill_role: String, radius: int, border_role: String = "", border_width: int = 0, shadow_level: int = 0) -> StyleBoxFlat:
+	# Shared StyleBoxFlat builder: fill role ("" for none), corner radius,
+	# optional outline, optional shadow level.
+	var sb := StyleBoxFlat.new()
+	if fill_role.is_empty():
+		sb.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	else:
+		sb.bg_color = color(fill_role)
+	if border_width > 0 and not border_role.is_empty():
+		sb.set_border_width_all(border_width)
+		sb.border_color = color(border_role)
+	sb.set_corner_radius_all(radius)
+	if shadow_level > 0:
+		CopilotMd3Tokens.apply_shadow(sb, shadow_level)
+	return sb
