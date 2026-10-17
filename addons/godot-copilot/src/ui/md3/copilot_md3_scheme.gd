@@ -72,6 +72,16 @@ func state_overlay(content_role: String, state: String) -> Color:
 func disabled_content(content_role: String) -> Color:
 	return alpha(content_role, CopilotMd3Tokens.DISABLED_CONTENT_OPACITY)
 
+func state_fill(base_color: Color, content_color: Color, opacity: float) -> Color:
+	# State layer over a container: blends the content color into the base when
+	# the base is visible, or returns the overlay color alone when the base is
+	# transparent.
+	if base_color.a <= 0.0:
+		var layer := content_color
+		layer.a = opacity
+		return layer
+	return base_color.lerp(content_color, opacity)
+
 func box(fill_role: String, radius: int, border_role: String = "", border_width: int = 0, shadow_level: int = 0) -> StyleBoxFlat:
 	# Shared StyleBoxFlat builder: fill role ("" for none), corner radius,
 	# optional outline, optional shadow level.

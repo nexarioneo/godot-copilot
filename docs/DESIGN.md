@@ -675,8 +675,8 @@ icons never carry color alone (always paired with text or tooltip).
 1. **Foundation** (implemented): `CopilotMd3Tokens`, `CopilotMd3Scheme`,
    `CopilotMd3Motion`, `CopilotMd3Icons`, bundled Roboto (Regular/Medium +
    Apache-2.0 license), curated Material Symbols SVGs.
-2. **Base components**: button, icon button, card, text field, chip, list item,
-   divider, badge, tooltip, state layer.
+2. **Base components** (implemented): state layer, button, icon button, card,
+   text field, chip, list item, divider, badge, tooltip.
 3. **Dock and chat**: header, chat view (cards, bubbles, tool rows, streaming),
    empty state, composer, status strip, snackbar.
 4. **Dialogs**: provider manager (rows, tabs, menus, wizard, editors), settings

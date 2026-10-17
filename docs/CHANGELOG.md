@@ -18,6 +18,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - **Bundled design assets**: Roboto Regular/Medium (`assets/fonts/`, Apache-2.0)
   and a curated 40-icon Material Symbols set as white 24px SVGs
   (`assets/symbols/`).
+- **Material 3 base components** (`src/ui/md3/`): `CopilotMd3StateLayer`,
+  `CopilotMd3Button`, `CopilotMd3IconButton`, `CopilotMd3Card`,
+  `CopilotMd3TextField`, `CopilotMd3Chip`, `CopilotMd3ListItem`,
+  `CopilotMd3Divider`, `CopilotMd3Badge`, `CopilotMd3Tooltip`.
 
 ### Changed
 

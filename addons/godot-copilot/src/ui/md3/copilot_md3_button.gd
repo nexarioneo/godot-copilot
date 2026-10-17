@@ -105,8 +105,8 @@ func _apply() -> void:
 	var disabled_content := _scheme.disabled_content("on-surface")
 
 	add_theme_stylebox_override("normal", _build_box(fill_color, radius, border_color, border_width, shadow))
-	add_theme_stylebox_override("hover", _build_box(_state_fill(fill_color, content_color, HOVER_OPACITY), radius, border_color, border_width, shadow))
-	add_theme_stylebox_override("pressed", _build_box(_state_fill(fill_color, content_color, PRESSED_OPACITY), radius, border_color, border_width, shadow))
+	add_theme_stylebox_override("hover", _build_box(_scheme.state_fill(fill_color, content_color, HOVER_OPACITY), radius, border_color, border_width, shadow))
+	add_theme_stylebox_override("pressed", _build_box(_scheme.state_fill(fill_color, content_color, PRESSED_OPACITY), radius, border_color, border_width, shadow))
 	add_theme_stylebox_override("focus", _focus_box(radius))
 	add_theme_stylebox_override("disabled", _build_box(disabled_fill, radius, disabled_border, border_width, 0))
 
@@ -120,13 +120,6 @@ func _apply() -> void:
 	add_theme_color_override("icon_pressed_color", content_color)
 	add_theme_color_override("icon_focus_color", content_color)
 	add_theme_color_override("icon_disabled_color", disabled_content)
-
-func _state_fill(fill_color: Color, content_color: Color, opacity: float) -> Color:
-	if fill_color.a <= 0.0:
-		var layer := content_color
-		layer.a = opacity
-		return layer
-	return fill_color.lerp(content_color, opacity)
 
 func _build_box(fill_color: Color, radius: int, border_color: Color, border_width: int, shadow: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()

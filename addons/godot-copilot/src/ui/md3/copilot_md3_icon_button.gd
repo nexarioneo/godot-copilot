@@ -74,8 +74,8 @@ func _apply() -> void:
 	var disabled_content := _scheme.disabled_content("on-surface")
 
 	add_theme_stylebox_override("normal", _icon_box(fill_color, radius, border_color, border_width, shadow))
-	add_theme_stylebox_override("hover", _icon_box(_state_fill(fill_color, content_color, HOVER_OPACITY), radius, border_color, border_width, shadow))
-	add_theme_stylebox_override("pressed", _icon_box(_state_fill(fill_color, content_color, PRESSED_OPACITY), radius, border_color, border_width, shadow))
+	add_theme_stylebox_override("hover", _icon_box(_scheme.state_fill(fill_color, content_color, HOVER_OPACITY), radius, border_color, border_width, shadow))
+	add_theme_stylebox_override("pressed", _icon_box(_scheme.state_fill(fill_color, content_color, PRESSED_OPACITY), radius, border_color, border_width, shadow))
 	add_theme_stylebox_override("focus", _focus_box(radius))
 	add_theme_stylebox_override("disabled", _icon_box(disabled_fill, radius, disabled_border, border_width, 0))
 
