@@ -1,0 +1,15 @@
+# Godot 4 engine cache
+.godot/
+
+# Godot export output
+export/
+build/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
