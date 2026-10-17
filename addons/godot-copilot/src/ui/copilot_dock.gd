@@ -1,28 +1,48 @@
 @tool
 class_name CopilotDock
 extends VBoxContainer
-# Chat panel in the right dock: session header, chat view, permission card, composer, status bar.
-# Everything is wired to CopilotAgent signals; the dock never touches storage directly.
+# Material 3 chat panel in the right dock: header, chat view, permission card,
+# composer, snackbar and status strip. Everything is wired to CopilotAgent
+# signals; the dock never touches storage directly. See DESIGN.md section 5.
 
 signal provider_manager_requested()
 signal settings_requested()
 
+const HEADER_HEIGHT := 48
+const STATUS_HEIGHT := 28
+const NARROW_WIDTH := 320
+const SESSION_ITEM_BASE := 1000
+const DELETE_ITEM_ID := 999999
+
 var agent: CopilotAgent
 
-var _session_option: OptionButton
-var _chat_view: CopilotChatView
-var _permission_card: CopilotPermissionCard
-var _composer: TextEdit
-var _send_button: Button
-var _stop_button: Button
-var _status_label: Label
-var _model_label: Label
+var _scheme: CopilotMd3Scheme = null
+
+var _surface: PanelContainer = null
+var _title_label: Label = null
+var _sessions_button: CopilotMd3IconButton = null
+var _session_popup: PopupMenu = null
+var _chat_view: CopilotChatView = null
+var _permission_card: CopilotPermissionCard = null
+var _jump_chip: CopilotMd3Chip = null
+var _jump_row: HBoxContainer = null
+var _snackbar: CopilotMd3Snackbar = null
+var _composer: CopilotMd3Composer = null
+var _state_dot: PanelContainer = null
+var _state_dot_box: StyleBoxFlat = null
+var _status_label: Label = null
+var _model_label: Label = null
 
 var _sessions: Array = []
-var _updating_sessions := false
+var _header_buttons: Array[CopilotMd3IconButton] = []
 
 func _ready() -> void:
 	_build_ui()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED and _surface != null:
+		_scheme = CopilotMd3Scheme.for_node(self)
+		_apply_scheme()
 
 # --- Setup ---
 
@@ -43,162 +63,252 @@ func setup(p_agent: CopilotAgent) -> void:
 	agent.turn_finished.connect(_on_turn_finished)
 	agent.memory_compacted.connect(_on_memory_compacted)
 	_permission_card.resolved.connect(_on_permission_card_resolved)
+	_chat_view.snackbar_requested.connect(_on_snackbar_requested)
+	_chat_view.empty_action_requested.connect(_on_empty_action_requested)
+	_chat_view.pinned_changed.connect(_on_pinned_changed)
+	_chat_view.retry_requested.connect(_on_retry_requested)
+	_composer.submitted.connect(_on_composer_submitted)
+	_composer.stop_requested.connect(_on_stop_pressed)
 	_update_status(agent.state())
 	_update_buttons()
 	_update_model_label()
+	_update_provider_availability()
 	_refresh_sessions()
 
 func focus_composer() -> void:
 	if _composer != null:
-		_composer.grab_focus()
+		_composer.focus_input()
 
 func refresh() -> void:
-	# Called by the plugin after the provider/settings dialog closes or the config changes.
+	# Called by the plugin after a dialog closes or the config changes.
 	_update_status(agent.state() if agent != null else "idle")
 	_update_buttons()
 	_update_model_label()
+	_update_provider_availability()
 	_refresh_sessions()
 
 # --- Build UI ---
 
 func _build_ui() -> void:
-	if _chat_view != null:
+	if _surface != null:
 		return
-	add_theme_constant_override("separation", 4)
-	_build_header()
-	_chat_view = CopilotChatView.new()
-	_chat_view.name = "chat_view"
-	add_child(_chat_view)
-	_permission_card = CopilotPermissionCard.new()
-	_permission_card.name = "permission_card"
-	add_child(_permission_card)
-	_build_composer()
-	_build_status_bar()
+	if _scheme == null:
+		_scheme = CopilotMd3Scheme.for_node(self)
+	_surface = PanelContainer.new()
+	_surface.name = "dock_surface"
+	_surface.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(_surface)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 0)
+	_surface.add_child(column)
 
-func _build_header() -> void:
+	_build_header(column)
+	_build_chat_area(column)
+	_build_bottom_area(column)
+	_build_status_strip(column)
+	_apply_scheme()
+
+func _build_header(parent: Control) -> void:
+	var header_margin := MarginContainer.new()
+	header_margin.add_theme_constant_override("margin_left", CopilotMd3Tokens.spacing("s"))
+	header_margin.add_theme_constant_override("margin_right", CopilotMd3Tokens.spacing("s"))
+	header_margin.add_theme_constant_override("margin_top", CopilotMd3Tokens.spacing("xs"))
+	header_margin.add_theme_constant_override("margin_bottom", CopilotMd3Tokens.spacing("xs"))
+	parent.add_child(header_margin)
 	var header := HBoxContainer.new()
 	header.name = "header_row"
-	header.add_theme_constant_override("separation", 4)
-	add_child(header)
+	header.custom_minimum_size.y = HEADER_HEIGHT - CopilotMd3Tokens.spacing("s")
+	header.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	header_margin.add_child(header)
 
-	_session_option = OptionButton.new()
-	_session_option.name = "session_option"
-	_session_option.tooltip_text = "Choose a chat session"
-	_session_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_session_option.clip_text = true
-	_session_option.item_selected.connect(_on_session_selected)
-	header.add_child(_session_option)
-
-	var new_session_button := _icon_button(PackedStringArray(["Add"]), "+", "New session")
-	new_session_button.pressed.connect(_on_new_session_pressed)
-	header.add_child(new_session_button)
-
-	var delete_session_button := _icon_button(PackedStringArray(["Remove"]), "✕", "Delete active session")
-	delete_session_button.pressed.connect(_on_delete_session_pressed)
-	header.add_child(delete_session_button)
+	_title_label = Label.new()
+	_title_label.name = "header_title"
+	CopilotMd3Tokens.apply_text(_title_label, "title-small")
+	_title_label.text = "Copilot"
+	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(_title_label)
 
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(8, 0)
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
 
-	var provider_button := _icon_button(PackedStringArray(["CryptoKey", "Key"]), "Key", "Provider Manager (manage API providers and models)")
-	provider_button.pressed.connect(func() -> void: provider_manager_requested.emit())
-	header.add_child(provider_button)
+	_sessions_button = _header_button(header, "history", "Show all sessions", _on_sessions_pressed)
+	_header_button(header, "add", "New session", _on_new_session_pressed)
+	_header_button(header, "settings", "Settings (permissions, memory, agent)", func() -> void: settings_requested.emit())
+	_header_button(header, "key", "Provider Manager (manage API providers and models)", func() -> void: provider_manager_requested.emit())
+	_header_button(header, "delete_sweep", "Clear the chat view", _on_clear_pressed)
 
-	var settings_button := _icon_button(PackedStringArray(["Tools"]), "Config", "Settings (permissions, memory, agent)")
-	settings_button.pressed.connect(func() -> void: settings_requested.emit())
-	header.add_child(settings_button)
+	_session_popup = PopupMenu.new()
+	_session_popup.name = "session_popup"
+	_session_popup.id_pressed.connect(_on_session_popup_pressed)
+	add_child(_session_popup)
 
-	var clear_button := _icon_button(PackedStringArray(["Clear", "Eraser"]), "⌫", "Clear the chat view")
-	clear_button.pressed.connect(func() -> void: _chat_view.clear())
-	header.add_child(clear_button)
+	resized.connect(_on_dock_resized)
 
-func _build_composer() -> void:
-	var composer_box := VBoxContainer.new()
-	composer_box.name = "composer_box"
-	composer_box.add_theme_constant_override("separation", 4)
-	add_child(composer_box)
+func _build_chat_area(parent: Control) -> void:
+	_chat_view = CopilotChatView.new()
+	_chat_view.name = "chat_view"
+	parent.add_child(_chat_view)
 
-	_composer = TextEdit.new()
+	var card_margin := MarginContainer.new()
+	card_margin.add_theme_constant_override("margin_left", CopilotMd3Tokens.spacing("m"))
+	card_margin.add_theme_constant_override("margin_right", CopilotMd3Tokens.spacing("m"))
+	card_margin.add_theme_constant_override("margin_top", CopilotMd3Tokens.spacing("xs"))
+	parent.add_child(card_margin)
+	_permission_card = CopilotPermissionCard.new()
+	_permission_card.name = "permission_card"
+	card_margin.add_child(_permission_card)
+
+func _build_bottom_area(parent: Control) -> void:
+	var jump_margin := MarginContainer.new()
+	jump_margin.add_theme_constant_override("margin_right", CopilotMd3Tokens.spacing("m"))
+	jump_margin.add_theme_constant_override("margin_top", CopilotMd3Tokens.spacing("xs"))
+	parent.add_child(jump_margin)
+	_jump_row = HBoxContainer.new()
+	_jump_row.alignment = BoxContainer.ALIGNMENT_END
+	jump_margin.add_child(_jump_row)
+	_jump_chip = CopilotMd3Chip.new()
+	_jump_chip.name = "jump_to_latest"
+	_jump_chip.configure(_scheme, CopilotMd3Chip.VARIANT_ASSIST, "Jump to latest", "arrow_downward")
+	_jump_chip.set_tone("secondary-container", "on-secondary-container")
+	_jump_chip.tooltip_text = "Scroll back to the newest message"
+	_jump_chip.visible = false
+	_jump_chip.pressed.connect(_on_jump_pressed)
+	_jump_row.add_child(_jump_chip)
+
+	_snackbar = CopilotMd3Snackbar.new()
+	_snackbar.name = "snackbar"
+	var snackbar_margin := MarginContainer.new()
+	snackbar_margin.add_theme_constant_override("margin_left", CopilotMd3Tokens.spacing("m"))
+	snackbar_margin.add_theme_constant_override("margin_right", CopilotMd3Tokens.spacing("m"))
+	parent.add_child(snackbar_margin)
+	snackbar_margin.add_child(_snackbar)
+
+	var composer_margin := MarginContainer.new()
+	composer_margin.add_theme_constant_override("margin_left", CopilotMd3Tokens.spacing("m"))
+	composer_margin.add_theme_constant_override("margin_right", CopilotMd3Tokens.spacing("m"))
+	composer_margin.add_theme_constant_override("margin_bottom", CopilotMd3Tokens.spacing("s"))
+	parent.add_child(composer_margin)
+	_composer = CopilotMd3Composer.new()
 	_composer.name = "composer"
-	_composer.placeholder_text = "Type a message… (Enter to send, Shift+Enter for a new line)"
-	_composer.custom_minimum_size = Vector2(0, 64)
-	_composer.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	_composer.gui_input.connect(_on_composer_gui_input)
-	composer_box.add_child(_composer)
+	composer_margin.add_child(_composer)
 
-	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_END
-	buttons.add_theme_constant_override("separation", 6)
-	composer_box.add_child(buttons)
+func _build_status_strip(parent: Control) -> void:
+	var divider := CopilotMd3Divider.new()
+	divider.name = "status_divider"
+	divider.configure(_scheme)
+	parent.add_child(divider)
 
-	_stop_button = Button.new()
-	_stop_button.name = "stop_button"
-	_stop_button.text = "Stop"
-	_stop_button.tooltip_text = "Stop the running request"
-	_stop_button.disabled = true
-	_stop_button.pressed.connect(_on_stop_pressed)
-	buttons.add_child(_stop_button)
+	var status_margin := MarginContainer.new()
+	status_margin.add_theme_constant_override("margin_left", CopilotMd3Tokens.spacing("m"))
+	status_margin.add_theme_constant_override("margin_right", CopilotMd3Tokens.spacing("m"))
+	parent.add_child(status_margin)
+	var strip := HBoxContainer.new()
+	strip.name = "status_strip"
+	strip.custom_minimum_size.y = STATUS_HEIGHT
+	strip.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
+	status_margin.add_child(strip)
 
-	_send_button = Button.new()
-	_send_button.name = "send_button"
-	_send_button.text = "Send"
-	_send_button.tooltip_text = "Send the message to Copilot"
-	_send_button.pressed.connect(_on_send_pressed)
-	buttons.add_child(_send_button)
-
-func _build_status_bar() -> void:
-	var status_bar := HBoxContainer.new()
-	status_bar.name = "status_bar"
-	status_bar.add_theme_constant_override("separation", 6)
-	add_child(status_bar)
+	_state_dot = PanelContainer.new()
+	_state_dot.custom_minimum_size = Vector2(6, 6)
+	_state_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_state_dot_box = StyleBoxFlat.new()
+	_state_dot_box.set_corner_radius_all(3)
+	_state_dot_box.bg_color = Color(0.5, 0.5, 0.5)
+	_state_dot.add_theme_stylebox_override("panel", _state_dot_box)
+	strip.add_child(_state_dot)
 
 	_status_label = Label.new()
 	_status_label.name = "status_label"
-	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	CopilotMd3Tokens.apply_text(_status_label, "label-small")
+	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_status_label.clip_text = true
-	status_bar.add_child(_status_label)
+	strip.add_child(_status_label)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	strip.add_child(spacer)
 
 	_model_label = Label.new()
 	_model_label.name = "model_label"
-	_model_label.add_theme_font_size_override("font_size", 11)
-	_model_label.add_theme_color_override("font_color", CopilotTheme.font_placeholder_color(self))
+	CopilotMd3Tokens.apply_text(_model_label, "label-small")
+	_model_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_model_label.clip_text = true
-	status_bar.add_child(_model_label)
+	strip.add_child(_model_label)
 
-func _icon_button(names: PackedStringArray, fallback: String, tooltip: String) -> Button:
-	var button := Button.new()
+func _header_button(parent: Control, symbol_name: String, tooltip: String, action: Callable) -> CopilotMd3IconButton:
+	var button := CopilotMd3IconButton.new()
+	button.configure(_scheme, CopilotMd3Button.VARIANT_STANDARD, "", symbol_name, "")
 	button.tooltip_text = tooltip
-	button.focus_mode = Control.FOCUS_NONE
-	CopilotTheme.apply_icon(button, names, fallback)
+	button.pressed.connect(action)
+	parent.add_child(button)
+	_header_buttons.append(button)
 	return button
+
+# --- Scheme ---
+
+func _apply_scheme() -> void:
+	if _scheme == null or _surface == null:
+		return
+	var surface_box := _scheme.box("surface", 0)
+	_surface.add_theme_stylebox_override("panel", surface_box)
+	_title_label.add_theme_color_override("font_color", _scheme.color("on-surface"))
+	_chat_view.set_scheme(_scheme)
+	_permission_card.set_scheme(_scheme)
+	_composer.set_scheme(_scheme)
+	_snackbar.set_scheme(_scheme)
+	_jump_chip.set_scheme(_scheme)
+	_jump_chip.set_tone("secondary-container", "on-secondary-container")
+	_status_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	_model_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	for button in _header_buttons:
+		button.set_scheme(_scheme)
+	_style_session_popup()
+	_update_status(agent.state() if agent != null else "idle")
 
 # --- Sessions ---
 
+func _on_dock_resized() -> void:
+	if _title_label != null:
+		_title_label.visible = size.x >= NARROW_WIDTH
+
+func _on_sessions_pressed() -> void:
+	_refresh_sessions()
+	_style_session_popup()
+	var anchor := _sessions_button.get_screen_position() + Vector2(0, _sessions_button.size.y + 4)
+	_session_popup.popup(Rect2i(Vector2i(anchor), Vector2i.ZERO))
+
 func _refresh_sessions() -> void:
-	if agent == null or _session_option == null:
+	if agent == null or _session_popup == null:
 		return
 	_sessions = agent.list_sessions()
 	var current_id := agent.current_session_id()
-	_updating_sessions = true
-	_session_option.clear()
-	var selected_index := -1
+	_session_popup.clear()
 	for i in range(_sessions.size()):
 		var session: Dictionary = _sessions[i]
-		_session_option.add_item(str(session.get("title", "Untitled")) + "  (" + str(session.get("step_count", 0)) + " steps)")
-		_session_option.set_item_metadata(i, str(session.get("id", "")))
-		if str(session.get("id", "")) == current_id:
-			selected_index = i
-	if selected_index >= 0:
-		_session_option.selected = selected_index
-	elif _session_option.item_count > 0:
-		_session_option.selected = 0
-	_updating_sessions = false
+		var title := str(session.get("title", "Untitled"))
+		var steps := int(session.get("step_count", 0))
+		_session_popup.add_item(title + "  (" + str(steps) + " steps)", SESSION_ITEM_BASE + i)
+		_session_popup.set_item_checked(_session_popup.item_count - 1, str(session.get("id", "")) == current_id)
+	if _sessions.is_empty():
+		_session_popup.add_item("No sessions yet", SESSION_ITEM_BASE)
+		_session_popup.set_item_disabled(0, true)
+	_session_popup.add_separator()
+	_session_popup.add_item("Delete current session", DELETE_ITEM_ID)
+	_session_popup.set_item_disabled(_session_popup.item_count - 1, current_id.is_empty())
 
-func _on_session_selected(index: int) -> void:
-	if _updating_sessions or agent == null:
+func _on_session_popup_pressed(id: int) -> void:
+	if agent == null:
 		return
-	var session_id := str(_session_option.get_item_metadata(index))
+	if id == DELETE_ITEM_ID:
+		_on_delete_session_pressed()
+		return
+	if id < SESSION_ITEM_BASE:
+		return
+	var index := id - SESSION_ITEM_BASE
+	if index < 0 or index >= _sessions.size():
+		return
+	var session_id := str(_sessions[index].get("id", ""))
 	if session_id.is_empty() or session_id == agent.current_session_id():
 		return
 	agent.load_session(session_id)
@@ -222,6 +332,7 @@ func _on_delete_session_pressed() -> void:
 		agent.delete_session(session_id)
 		_chat_view.rebuild_from_trajectory(agent.trajectory())
 		_refresh_sessions()
+		_snackbar.show_message("Session deleted")
 		confirm.queue_free()
 	)
 	confirm.canceled.connect(func() -> void: confirm.queue_free())
@@ -229,17 +340,8 @@ func _on_delete_session_pressed() -> void:
 
 # --- Composer ---
 
-func _on_composer_gui_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and not event.shift_pressed:
-		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
-			_composer.accept_event()
-			_on_send_pressed()
-
-func _on_send_pressed() -> void:
+func _on_composer_submitted(text: String) -> void:
 	if agent == null:
-		return
-	var text := _composer.text
-	if text.strip_edges().is_empty():
 		return
 	agent.send_user_message(text)
 
@@ -247,11 +349,40 @@ func _on_stop_pressed() -> void:
 	if agent != null:
 		agent.cancel_turn()
 
+func _on_clear_pressed() -> void:
+	_chat_view.clear()
+	_snackbar.show_message("Chat view cleared")
+
+func _on_jump_pressed() -> void:
+	_chat_view.scroll_to_bottom()
+
+func _on_pinned_changed(pinned: bool) -> void:
+	_update_jump_chip(pinned)
+
+func _update_jump_chip(pinned: bool) -> void:
+	var busy := agent != null and agent.is_busy()
+	_jump_chip.visible = (not pinned) and busy
+
+func _on_retry_requested() -> void:
+	if agent == null:
+		return
+	if agent.is_busy():
+		_snackbar.show_message("Wait for the current turn to finish")
+		return
+	if agent.retry_last_turn():
+		_chat_view.rebuild_from_trajectory(agent.trajectory())
+		_refresh_sessions()
+
 # --- Agent signals ---
 
 func _on_state_changed(state: String) -> void:
 	_update_status(state)
 	_update_buttons()
+	_chat_view.set_thinking(
+		state == CopilotAgent.STATE_THINKING or state == CopilotAgent.STATE_COMPACTING,
+		"Compacting memory..." if state == CopilotAgent.STATE_COMPACTING else "Thinking..."
+	)
+	_update_jump_chip(_chat_view.is_pinned())
 
 func _on_user_message_added(text: String) -> void:
 	_chat_view.add_user_message(text)
@@ -290,33 +421,109 @@ func _on_session_changed(_session_id: String, _title: String) -> void:
 	_chat_view.rebuild_from_trajectory(agent.trajectory())
 	_refresh_sessions()
 	_update_model_label()
+	_update_provider_availability()
 
 func _on_turn_finished() -> void:
 	_update_status(agent.state())
 	_update_buttons()
 	_update_model_label()
+	_update_provider_availability()
 	_refresh_sessions()
 	if is_inside_tree() and is_visible_in_tree():
-		_composer.grab_focus()
+		_composer.focus_input()
 
 func _on_memory_compacted(_summary: String) -> void:
 	_chat_view.add_notice("Conversation memory was compacted automatically.")
+
+func _on_snackbar_requested(message: String, action_label: String = "", action: Callable = Callable()) -> void:
+	_snackbar.show_message(message, action_label, action)
+
+func _on_empty_action_requested(provider_available: bool) -> void:
+	if provider_available:
+		if agent != null:
+			agent.new_session()
+	else:
+		provider_manager_requested.emit()
 
 # --- Status ---
 
 func _update_status(state: String) -> void:
 	if _status_label == null:
 		return
-	_status_label.text = "● " + CopilotTheme.status_text(self, state)
-	_status_label.add_theme_color_override("font_color", CopilotTheme.status_color(self, state))
+	_status_label.text = state_text(state)
+	if _state_dot_box != null and _scheme != null:
+		_state_dot_box.bg_color = _scheme.color(state_role(state))
 
 func _update_buttons() -> void:
-	if _send_button == null or agent == null:
+	if _composer == null or agent == null:
 		return
-	var busy := agent.is_busy()
-	_send_button.disabled = busy
-	_stop_button.disabled = not busy
+	_composer.set_busy(agent.is_busy())
 
 func _update_model_label() -> void:
 	if _model_label != null and agent != null:
 		_model_label.text = agent.active_model_label()
+
+func _update_provider_availability() -> void:
+	if _chat_view != null and agent != null:
+		_chat_view.set_provider_available(not agent.active_model_label().is_empty())
+
+static func state_text(state: String) -> String:
+	match state:
+		CopilotAgent.STATE_IDLE:
+			return "Ready"
+		CopilotAgent.STATE_THINKING:
+			return "Thinking..."
+		CopilotAgent.STATE_STREAMING:
+			return "Replying..."
+		CopilotAgent.STATE_RUNNING_TOOLS:
+			return "Running tools..."
+		CopilotAgent.STATE_WAITING_PERMISSION:
+			return "Waiting for permission..."
+		CopilotAgent.STATE_COMPACTING:
+			return "Compacting memory..."
+		"error":
+			return "Error"
+		"canceled":
+			return "Canceled"
+	return state
+
+static func state_role(state: String) -> String:
+	match state:
+		CopilotAgent.STATE_IDLE:
+			return "status-success"
+		CopilotAgent.STATE_STREAMING:
+			return "primary"
+		CopilotAgent.STATE_THINKING, CopilotAgent.STATE_RUNNING_TOOLS, CopilotAgent.STATE_WAITING_PERMISSION, CopilotAgent.STATE_COMPACTING:
+			return "status-warning"
+		"error":
+			return "error"
+	return "on-surface-variant"
+
+# --- Session popup styling (interim until CopilotMd3Menu lands in phase 4) ---
+
+func _style_session_popup() -> void:
+	if _scheme == null or _session_popup == null:
+		return
+	_session_popup.add_theme_stylebox_override("panel", _scheme.box("surface-container", CopilotMd3Tokens.corner_radius("medium", Vector2.ZERO), "outline-variant", 1, 2))
+	var hover := _scheme.box("", CopilotMd3Tokens.corner_radius("small", Vector2.ZERO))
+	hover.bg_color = _scheme.alpha("on-surface", 0.08)
+	hover.content_margin_left = CopilotMd3Tokens.spacing("s")
+	hover.content_margin_right = CopilotMd3Tokens.spacing("s")
+	_session_popup.add_theme_stylebox_override("hover", hover)
+	var separator := StyleBoxLine.new()
+	separator.color = _scheme.color("outline-variant")
+	separator.thickness = 1
+	_separator_inset(separator)
+	_session_popup.add_theme_stylebox_override("separator", separator)
+	var font := CopilotMd3Tokens.font_for_weight(CopilotMd3Tokens.type_weight("label-large"))
+	if font != null:
+		_session_popup.add_theme_font_override("font", font)
+	_session_popup.add_theme_font_size_override("font_size", CopilotMd3Tokens.type_size("label-large"))
+	_session_popup.add_theme_color_override("font_color", _scheme.color("on-surface"))
+	_session_popup.add_theme_color_override("font_hover_color", _scheme.color("on-surface"))
+	_session_popup.add_theme_color_override("font_disabled_color", _scheme.disabled_content("on-surface"))
+	_session_popup.add_theme_color_override("font_separator_color", _scheme.color("on-surface-variant"))
+
+func _separator_inset(style: StyleBoxLine) -> void:
+	style.grow_begin = CopilotMd3Tokens.spacing("s")
+	style.grow_end = CopilotMd3Tokens.spacing("s")

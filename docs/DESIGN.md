@@ -64,7 +64,7 @@ Decided 2026-10-17:
 | Theme mode | **Follow the editor light/dark theme** | Auto-detect at dock creation; manual override planned in Settings. |
 | Color scheme | **Material 3 baseline** (purple), light and dark | Values in MATERIAL3.md §3; no runtime palette generation. |
 | Font | **Bundle Roboto** (Regular 400 + Medium 500) | UI text only; code/arguments use the editor monospace font. |
-| Expressiveness | **Baseline M3 + expressive springs for key moments** | Key moments: sending a message, permission card appearing, snackbar. |
+| Expressiveness | **Baseline M3 + expressive springs for key moments** | Key moments: message send settle, permission card appearing; everything else uses standard M3 curves. |
 | Icons | **Curated Material Symbols (Rounded)** | ~40 symbols, bundled as single-color SVGs, tinted by token colors; editor icons as fallback. |
 
 ---
@@ -257,8 +257,8 @@ General rules for every component in the library:
 
 - Base: `PanelContainer`. Variants: elevated (container-low + level 1), filled
   (container-highest), outlined (surface + 1px outline-variant).
-- Used for: permission card (elevated), message cards (custom container roles via
-  `role_override` property), panel sections in dialogs.
+- Used for: permission card (elevated, via subclass), panel sections in dialogs;
+  chat message cards are built inline by the chat view with the same role pairs.
 
 ### 4.6 CopilotMd3ListItem
 
@@ -280,6 +280,8 @@ General rules for every component in the library:
   (label-small, trailing, on-surface-variant), active session marked with a check
   icon in primary.
 - Used for: sessions menu, add-provider preset menu, model picker, context menus.
+- Interim: the dock's sessions menu uses a styled `PopupMenu` with these
+  overrides until this component lands in the dialogs phase.
 
 ### 4.8 CopilotMd3Tabs
 
@@ -310,27 +312,31 @@ General rules for every component in the library:
 
 ### 4.11 CopilotMd3Checkbox / CopilotMd3Radio
 
-- Base: `CheckBox` with custom drawing. Checkbox: 18px box, corner 2, primary
-  fill when checked; radio: 20px, primary dot. Both: 40px state layer, 48px
-  target in dialogs.
+- `CopilotMd3Checkbox` (implemented): `Button` toggle with custom drawing — 18px
+  box, corner 2, primary fill with an on-primary tick when checked, 2px
+  on-surface-variant border otherwise, 40px circular state layer, label on the
+  right; disabled uses 38% content / 12% container.
+- `CopilotMd3Radio` (20px, primary dot) lands with the dialogs phase.
 - Used for: "Remember for this session", permissions preset selection (three
   radios with supporting text), model rows in dense lists (checkbox).
 
-### 4.12 CopilotMd3Progress (linear + circular)
+### 4.12 CopilotMd3Progress (circular + linear)
 
-- Linear: 4px track `secondary-container`, active `primary`; indeterminate mode
-  with a sliding segment (350ms sweep, emphasized-decelerate) used for imports
-  and tests.
-- Circular: 4px stroke, 24px (inline in tool rows) and 40px (empty/thinking)
-  sizes.
+- `CopilotMd3Spinner` (implemented): circular indeterminate indicator drawn with
+  `draw_arc`, 24px (thinking row) and 16px (tool rows) with scaled stroke width,
+  ~1.33s rotation.
+- Linear progress (4px, sliding segment) is planned for imports and key tests in
+  the dialogs phase.
 - Used for: thinking indicator, tool running state, model import, key testing.
 
 ### 4.13 CopilotMd3Snackbar
 
-- Base: `PanelContainer` hosted by the dock at the bottom edge. Inverse-surface,
-  corner 4, 48px single line (68px two lines), 16px padding, body-medium text,
-  optional text-button action (inverse-primary), 4s auto-dismiss, rise/fall
-  motion per 3.6.
+- `CopilotMd3Snackbar` (implemented): a `Control` hosting an inner panel
+  (inverse-surface, corner 4, shadow level 3) inline above the composer; the
+  control animates its reserved height for the rise/fall reveal (300ms
+  standard-decelerate in, 200ms standard-accelerate out) — 48px single line,
+  16px padding, body-medium text, optional text-button action
+  (inverse-primary), 4s auto-dismiss.
 - Used for: clipboard confirmation, settings saved, import finished, background
   errors (with a short action such as "Retry" when applicable).
 
@@ -350,8 +356,9 @@ General rules for every component in the library:
 
 ### 4.16 CopilotMd3Divider
 
-- Base: `HSeparator` restyle: 1px `outline-variant`; full width in strips, inset
-  16px inside lists and dialogs.
+- Base: `Control` with a custom-drawn 1px `outline-variant` line (horizontal or
+  vertical, optional insets); full width in strips, inset 16px inside lists and
+  dialogs.
 - Used for: composer separation, status strip separation, list section breaks,
   menu separators.
 
@@ -369,6 +376,28 @@ General rules for every component in the library:
   `on-secondary-container`.
 - Used for: provider kind (OpenAI / Anthropic), API type, permission rule mode
   (Allow / Ask / Deny), memory mode (Text / Native).
+
+### 4.19 CopilotMd3ToolRow
+
+- `PanelContainer` with `surface-container-low` fill, 1px `outline-variant`,
+  corner 12 and 36px collapsed height. Header: chevron toggle, tool icon 18,
+  optional subagent prefix in `status-info`, tool name label-large, truncated
+  args body-small, status glyph (spinner 16 while running, check_circle
+  status-success or error on completion) and elapsed label-small.
+- Expanded: output block in `surface-container-lowest` (corner 8, 12px padding,
+  editor mono font) truncated to a readable length with a "Show more" text
+  button.
+- Used for: one row per tool call in the chat view.
+
+### 4.20 CopilotMd3Composer
+
+- VBox with a `surface-container-highest` pill (corner 24, shadow level 1)
+  around a flat multiline `TextEdit`, plus a supporting hint label. Grows from
+  48px to 120px with the line count; Enter sends, Shift+Enter inserts a newline.
+- Trailing actions: Send (`CopilotMd3IconButton` filled) and Stop (tonal, only
+  while busy); the hint "Enter to send, Shift+Enter for a new line" shows while
+  focused.
+- Used for: the dock composer only.
 
 ---
 
@@ -499,7 +528,7 @@ composer:
 
 ## 8. Composer and Status Strip
 
-- Composer: `CopilotMd3TextField` in chat-input mode: `surface-container-highest`
+- Composer: `CopilotMd3Composer` (section 4.20): `surface-container-highest`
   fill, corner full (24 when multi-line), 48px collapsed height growing to 120px,
   16px padding, body-medium; placeholder "Message Copilot...".
 - Trailing in-pill actions: Send (`CopilotMd3IconButton` filled, primary; disabled
@@ -677,12 +706,16 @@ icons never carry color alone (always paired with text or tooltip).
    Apache-2.0 license), curated Material Symbols SVGs.
 2. **Base components** (implemented): state layer, button, icon button, card,
    text field, chip, list item, divider, badge, tooltip.
-3. **Dock and chat**: header, chat view (cards, bubbles, tool rows, streaming),
-   empty state, composer, status strip, snackbar.
-4. **Dialogs**: provider manager (rows, tabs, menus, wizard, editors), settings
-   (radios, switches, segmented controls), dialogs base class.
-5. **Polish**: motion details, light/dark pass, visual checklist, retire
-   `CopilotTheme` styling (keep light/dark detection + icon fallback).
+3. **Dock and chat** (implemented): header with the sessions menu (interim
+   styled `PopupMenu`), chat view (bubbles, cards, tool rows, streaming caret,
+   hover copy/retry), empty state, composer, status strip, snackbar, checkbox,
+   circular spinner; permission card rebuilt per section 7.
+4. **Dialogs** (planned): provider manager (rows, tabs, menus, wizard, editors),
+   settings (radios, switches, segmented controls), dialogs base class, linear
+   progress for imports and key tests.
+5. **Polish** (planned): message entrance motion (fade + rise), live light/dark
+   re-apply for already rendered cards, overlay tooltips, visual checklist,
+   retire `CopilotTheme` styling (keep light/dark detection + icon fallback).
 
 Until each phase lands, existing UI keeps working; classes are migrated one by one
 and no `.tscn` is introduced.

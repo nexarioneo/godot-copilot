@@ -22,6 +22,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
   `CopilotMd3Button`, `CopilotMd3IconButton`, `CopilotMd3Card`,
   `CopilotMd3TextField`, `CopilotMd3Chip`, `CopilotMd3ListItem`,
   `CopilotMd3Divider`, `CopilotMd3Badge`, `CopilotMd3Tooltip`.
+- **Material 3 chat components** (`src/ui/md3/`): `CopilotMd3Spinner`
+  (indeterminate circular progress), `CopilotMd3Checkbox`, `CopilotMd3EmptyState`,
+  `CopilotMd3Snackbar` (inline rise/fall reveal, 4s auto-dismiss),
+  `CopilotMd3ToolRow` (collapsible tool call row with output block) and
+  `CopilotMd3Composer` (autogrowing pill input, Enter to send).
+- **Retry last turn**: `CopilotAgent.retry_last_turn()` +
+  `CopilotSessionStore.trim_after_last_user()` re-run the last exchange; the
+  assistant message card exposes a Retry action.
 
 ### Changed
 
@@ -29,6 +37,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   component library (standalone components derived from stock Godot controls)
   instead of following the editor theme; `docs/DESIGN.md` was rewritten for the new
   concept, with reference data in `docs/MATERIAL3.md`.
+- **Dock, chat view, and permission card rebuilt on the Material 3 system**:
+  header (Sessions, New, Tools, Keys, Clear) with the title hiding under 320px;
+  user bubbles and assistant cards with hover Copy/Retry; notice cards; tool rows;
+  thinking row; streaming caret; empty state; composer pill with Send/Stop;
+  "Jump to latest" chip; snackbar; and a 28px status strip (state dot + text +
+  provider/model). The permission card now uses a shield badge, location chip,
+  single-select scope chips, a remember checkbox and Deny / Always allow /
+  Allow once: Allow once grants nothing, the checkbox turns Allow into a session
+  grant, and Always allow writes a permanent rule.
+- Chat rendering keeps the `add_text()`-only rule (no BBCode evaluation) and the
+  pinned-to-bottom auto-scroll; the sessions menu uses a styled `PopupMenu` until
+  `CopilotMd3Menu` lands in the dialogs phase.
 
 ---
 

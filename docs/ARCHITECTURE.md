@@ -92,6 +92,8 @@ addons/godot-copilot/
     │   ├── copilot_editor_tools.gd CopilotEditorTools
     │   └── copilot_mcp_tools.gd    CopilotMcpTools
     └── ui/
+        ├── md3/                        Material 3 design system (tokens, scheme,
+        │                               motion, icons, components)
         ├── copilot_theme.gd            CopilotTheme (static helpers)
         ├── copilot_dock.gd             CopilotDock
         ├── copilot_chat_view.gd        CopilotChatView
@@ -440,6 +442,9 @@ Default action mapping (used by the permission engine):
   enabled — only when building LLM messages; the original data stays in the trajectory.
 - `build_messages(system_prompt)` assembles: system prompt → summary (if any) →
   messages after `compacted_up_to_step`.
+- `trim_after_last_user()` drops the trailing exchange (the last `user` step and
+  everything after it) and returns its display text — used by Retry; it refuses
+  when that step is already covered by compaction.
 - Legacy session migration (`user://godot_copilot/sessions/` from v2 and
   `res://.godot/.copilot/conversations/` from v1) is copied to the new location the
   first time `CopilotConfig` is loaded and the new directory is still empty.
@@ -479,6 +484,9 @@ to `EditorInterface.get_base_control()` so they can overlay the entire editor.
   - cancels the provider (`provider.cancel()`), increments `_generation`,
   - resolves the pending permission as "denied" so the `await` does not hang,
   - emits `turn_finished`.
+- `retry_last_turn()`: trims the trailing exchange via
+  `store.trim_after_last_user()` and re-sends the user text through
+  `send_user_message()`; the dock rebuilds the chat from the trajectory.
 - All async callbacks check `_generation` before changing state.
 - All UI node accesses from signals use at least an `is_instance_valid()` guard.
 - No `push_error` that could kill the plugin; errors are shown as notices or returned

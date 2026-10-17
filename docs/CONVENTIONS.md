@@ -57,6 +57,10 @@ Note: the abbreviation **AI** is written `Ai` in PascalCase names
 full uppercase, so the alternative `OpenAI` was also considered — **decision: use
 `OpenAi`** and stay consistent in all references).
 
+Material 3 design-system classes share the `CopilotMd3` prefix (tokens, scheme,
+motion, icons, components); the full component catalog lives in DESIGN.md
+section 4.
+
 ## 3. Config Access
 
 - All `settings.json` access goes **only** through `CopilotConfig`. No direct
@@ -70,10 +74,10 @@ full uppercase, so the alternative `OpenAI` was also considered — **decision: 
 
 - UI is built **in code**; there are no `.tscn` files in the addon.
 - Colors & icons: UI built on the editor theme goes through `CopilotTheme` (a
-  fallback is mandatory); new components in `src/ui/md3/` use the `CopilotMd3*`
+  fallback is mandatory); components in `src/ui/md3/` use the `CopilotMd3*`
   design system (`CopilotMd3Scheme` / `CopilotMd3Motion` / `CopilotMd3Icons`)
-  instead — see DESIGN.md. Both coexist during the rollout; `CopilotTheme` is
-  retired at the end.
+  instead — see DESIGN.md. The dock, chat view, and permission card are already
+  migrated; the dialogs migrate next, and `CopilotTheme` is retired at the end.
 - Every icon button requires `tooltip_text`.
 - Use native Godot base widgets (`Button`, `OptionButton`, `CheckButton`, `SpinBox`,
   `LineEdit`, `TextEdit`, `Tree`/`ItemList` where appropriate).

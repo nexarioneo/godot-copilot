@@ -868,6 +868,9 @@ The plugin moves from "follow the Godot editor theme" to **its own design system
 
 ### 13.3 Component inventory (M3 → Godot)
 
+The bases below are indicative; the definitive per-component classes and bases
+are listed in [DESIGN.md](DESIGN.md) section 4.
+
 | M3 component | Base control | Planned class |
 | --- | --- | --- |
 | Filled/tonal/outlined/text/elevated button | `Button` | `CopilotMd3Button` (variant + size + toggle properties) |
@@ -881,12 +884,12 @@ The plugin moves from "follow the Godot editor theme" to **its own design system
 | Menu | `PopupMenu` (restyled) | `CopilotMd3Menu` helper: 48dp items, 4dp corner, 8dp vertical padding |
 | Tabs (primary) | custom + `MarginContainer` | `CopilotMd3TabBar` (3dp indicator, 48/64dp heights) |
 | Switch | `CheckButton` (custom draw) | `CopilotMd3Switch` (52x32 track, animated 16→24 handle) |
-| Checkbox | `CheckBox` (custom draw) | `CopilotMd3Checkbox` (18dp, 2dp corner) |
+| Checkbox | `Button` toggle (custom draw) | `CopilotMd3Checkbox` (18dp, 2dp corner) |
 | Radio | `CheckBox` group (custom draw) | `CopilotMd3Radio` (20dp) |
 | Slider | `HSlider` (restyled) | `CopilotMd3Slider` |
 | Progress (linear) | `ProgressBar` (restyled) | `CopilotMd3LinearProgress` |
-| Progress (circular) | `Control` (custom draw) | `CopilotMd3CircularProgress` |
-| Snackbar | `PanelContainer` overlay | `CopilotMd3Snackbar` + host |
+| Progress (circular) | `Control` (custom draw) | `CopilotMd3Spinner` (indeterminate) |
+| Snackbar | `Control` + inner panel | `CopilotMd3Snackbar` (inline host) |
 | Tooltip | `PopupPanel` | `CopilotMd3Tooltip` (plain style) |
 | Badge | `Control` | `CopilotMd3Badge` |
 | Divider | `HSeparator`/`Control` | `CopilotMd3Divider` |

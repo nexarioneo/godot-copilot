@@ -144,6 +144,17 @@ func cancel_turn() -> void:
 	_set_state(STATE_IDLE)
 	turn_finished.emit()
 
+func retry_last_turn() -> bool:
+	# Trims the last exchange and re-sends its user text. Returns true when a
+	# regeneration was started; the dock rebuilds the view from the trajectory.
+	if _turn_active or store == null:
+		return false
+	var text := store.trim_after_last_user()
+	if text.strip_edges().is_empty():
+		return false
+	send_user_message(text)
+	return true
+
 func resolve_permission(request_id: String, allowed: bool, remember := false, scope_index := 0) -> void:
 	if _pending_permission.is_empty() or str(_pending_permission.get("id", "")) != request_id:
 		return

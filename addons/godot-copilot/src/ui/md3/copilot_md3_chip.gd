@@ -19,6 +19,8 @@ const PRESSED_OPACITY := 0.10
 
 var variant: String = VARIANT_FILTER
 var _scheme: CopilotMd3Scheme = null
+var _tone_fill := ""
+var _tone_content := ""
 
 func configure(scheme: CopilotMd3Scheme, chip_variant: String = VARIANT_FILTER, label: String = "", icon_name: String = "", editor_fallback: String = "") -> void:
 	_scheme = scheme
@@ -30,6 +32,13 @@ func configure(scheme: CopilotMd3Scheme, chip_variant: String = VARIANT_FILTER, 
 
 func set_scheme(scheme: CopilotMd3Scheme) -> void:
 	_scheme = scheme
+	_apply()
+
+func set_tone(fill_role: String, content_role: String) -> void:
+	# Overrides the variant colors, e.g. an assist chip painted with
+	# secondary-container or error-container for the permission location.
+	_tone_fill = fill_role
+	_tone_content = content_role
 	_apply()
 
 func set_selected(selected: bool) -> void:
@@ -49,6 +58,7 @@ func _on_toggled(_pressed: bool) -> void:
 func _apply() -> void:
 	if _scheme == null:
 		return
+	toggle_mode = variant == VARIANT_FILTER
 	custom_minimum_size.y = HEIGHT
 	CopilotMd3Tokens.apply_text(self, "label-large")
 	add_theme_constant_override("icon_max_width", ICON_SIZE)
@@ -71,6 +81,12 @@ func _apply() -> void:
 				border_role = ""
 				border_width = 0
 				content_role = "on-secondary-container"
+
+	if not _tone_fill.is_empty():
+		fill_role = _tone_fill
+		border_role = ""
+		border_width = 0
+		content_role = _tone_content if not _tone_content.is_empty() else "on-surface"
 
 	var radius := CopilotMd3Tokens.corner_radius("small", Vector2(HEIGHT, HEIGHT))
 	var fill_color := Color(0.0, 0.0, 0.0, 0.0)

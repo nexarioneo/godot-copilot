@@ -146,6 +146,24 @@ func record_tool(tool_call_id: String, tool_name: String, result: Dictionary) ->
 	save_current()
 	return step
 
+func trim_after_last_user() -> String:
+	# Drops the trailing exchange (the last user step and everything after it)
+	# and returns its display text so the agent can re-run it. Used by Retry.
+	if current_session.is_empty():
+		return ""
+	var trajectory: Array = current_session["trajectory"]
+	var last_user := -1
+	for i in range(trajectory.size() - 1, -1, -1):
+		if str(trajectory[i].get("role", "")) == "user":
+			last_user = i
+			break
+	if last_user < 0 or last_user < _compacted_up_to():
+		return ""
+	var text := str(trajectory[last_user].get("display", trajectory[last_user].get("content", "")))
+	trajectory.resize(last_user)
+	save_current()
+	return text
+
 func _shorten_title(text: String) -> String:
 	var clean := text.strip_edges().replace("\n", " ")
 	if clean.length() > 32:
