@@ -135,13 +135,14 @@ godot-copilot/
 └── addons/godot-copilot/      the plugin itself
     ├── plugin.cfg             plugin metadata
     ├── plugin.gd              EditorPlugin entry point (dock, menu, lifecycle)
+    ├── assets/                bundled fonts (Roboto) and Material Symbols icons
     └── src/
         ├── config/            paths and settings (CopilotPaths, CopilotConfig)
         ├── chat/              agent, sessions, subagents, editor context
         ├── providers/         provider implementations, factory, presets
         ├── security/          permission engine
         ├── tools/             tool catalog, router, tool implementations
-        └── ui/                theme, dock, chat view, dialogs
+        └── ui/                dock, chat view, dialogs, md3/ component library
 ```
 
 ## Documentation

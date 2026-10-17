@@ -21,6 +21,13 @@ const LEGACY_V2_SESSIONS_DIR := LEGACY_V2_ROOT + "/sessions"
 const LEGACY_V1_SETTINGS_FILE := "res://.godot/.copilot/config/settings.json"
 const LEGACY_V1_SESSIONS_DIR := "res://.godot/.copilot/conversations"
 
+# Bundled addon assets (fonts, icons). Read-only resources, not user data.
+const ADDON_ROOT := "res://addons/godot-copilot"
+const FONTS_DIR := ADDON_ROOT + "/assets/fonts"
+const FONTS_REGULAR := FONTS_DIR + "/Roboto-Regular.ttf"
+const FONTS_MEDIUM := FONTS_DIR + "/Roboto-Medium.ttf"
+const SYMBOLS_DIR := ADDON_ROOT + "/assets/symbols"
+
 static func ensure_dir(path: String) -> bool:
 	if DirAccess.dir_exists_absolute(path):
 		return true

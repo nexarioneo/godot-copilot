@@ -69,7 +69,11 @@ full uppercase, so the alternative `OpenAI` was also considered — **decision: 
 ## 4. UI
 
 - UI is built **in code**; there are no `.tscn` files in the addon.
-- Colors & icons go **only** through `CopilotTheme` (a fallback is mandatory).
+- Colors & icons: UI built on the editor theme goes through `CopilotTheme` (a
+  fallback is mandatory); new components in `src/ui/md3/` use the `CopilotMd3*`
+  design system (`CopilotMd3Scheme` / `CopilotMd3Motion` / `CopilotMd3Icons`)
+  instead — see DESIGN.md. Both coexist during the rollout; `CopilotTheme` is
+  retired at the end.
 - Every icon button requires `tooltip_text`.
 - Use native Godot base widgets (`Button`, `OptionButton`, `CheckButton`, `SpinBox`,
   `LineEdit`, `TextEdit`, `Tree`/`ItemList` where appropriate).

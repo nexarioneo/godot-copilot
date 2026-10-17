@@ -43,15 +43,18 @@ godot-copilot/
     ├── plugin.gd              ← EditorPlugin: right dock, Tools menu, lifecycle
     ├── README.md
     ├── assets/
+    │   ├── fonts/             ← bundled Roboto (Regular/Medium) + Apache-2.0 license
     │   ├── icons/             ← plugin icons (copilot.svg, optional)
-    │   └── providers/         ← provider logos *.svg
+    │   ├── providers/         ← provider logos *.svg
+    │   └── symbols/           ← bundled Material Symbols SVGs (24px, white)
     └── src/
         ├── config/            ← CopilotPaths, CopilotConfig
         ├── chat/              ← CopilotAgent, CopilotSessionStore, CopilotSubagent, CopilotEditorContext
         ├── providers/         ← CopilotProvider + OpenAI + Anthropic + factory + presets
         ├── security/          ← CopilotPermissions
         ├── tools/             ← catalog, router, file/search/shell/web/scene/editor/mcp tools
-        └── ui/                ← theme, dock, chat view, permission card, dialogs
+        └── ui/                ← dock, chat view, permission card, dialogs, theme
+            └── md3/           ← CopilotMd3* design system (tokens, scheme, motion, icons, components)
 ```
 
 ---

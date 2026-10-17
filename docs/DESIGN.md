@@ -75,9 +75,10 @@ Decided 2026-10-17:
 
 | Module | Responsibility |
 | --- | --- |
-| `CopilotMd3Tokens` | Raw constants: palettes, role maps, type scale, shape, elevation, states, motion |
-| `CopilotMd3Scheme` | Resolves role names to `Color`; `light()` / `dark()` builders; extension roles |
+| `CopilotMd3Tokens` | Raw constants: color roles (light/dark + fixed), type scale, shape, elevation, states, motion, spacing |
+| `CopilotMd3Scheme` | Resolves role names to `Color`; `light()` / `dark()` builders; detects editor light/dark; extension roles |
 | `CopilotMd3Motion` | Durations, easings, spring curves, cubic-bezier sampler, tween helpers |
+| `CopilotMd3Icons` | Bundled Material Symbols loader; editor-icon and text fallbacks |
 | `CopilotMd3StateLayer` | Hover/focus/pressed/dragged overlay shared by interactive components |
 
 Components must not hardcode colors, fonts, radii, or durations; they ask the
@@ -419,7 +420,7 @@ General rules for every component in the library:
 | Role | Container | Shape | Align | Header |
 | --- | --- | --- | --- | --- |
 | User | `primary-container` | corner 16, 4 at bottom-right | right, max 85% width | none (bubble only) |
-| Assistant | `surface-container-high` | corner 16, 4 at bottom-left | left, full width minus 8px | role row: sparkles icon 16 + `Copilot` label-medium on-surface-variant |
+| Assistant | `surface-container-high` | corner 16, 4 at bottom-left | left, full width minus 8px | role row: auto_awesome icon 16 + `Copilot` label-medium on-surface-variant |
 | Notice/system | `surface-container-low` | corner 12 | left | info icon + label per severity |
 | Tool row | `surface-container-low` + 1px `outline-variant` | corner 12, 36px min height | left, indented 8px | leading tool icon 18, tool name label-large on-surface, args body-small on-surface-variant, status chip |
 
@@ -451,7 +452,7 @@ General rules for every component in the library:
 
 ### 6.4 Empty state and auto-scroll
 
-- Empty chat: `CopilotMd3EmptyState` with sparkles icon, title "Start a
+- Empty chat: `CopilotMd3EmptyState` with auto_awesome icon, title "Start a
   conversation", hint "Connect a provider and ask Copilot to work on your
   project.", actions: filled "Open provider manager" (or "New session" when a
   provider exists).
@@ -610,7 +611,7 @@ v2, but now second priority).
 | Warning | warning |
 | Info / notice | info |
 | Thinking / running | progress_activity |
-| Assistant role | sparkles |
+| Assistant role | auto_awesome |
 | Subagent | account_tree |
 | Tool: file | description |
 | Tool: search | search |
@@ -629,7 +630,7 @@ v2, but now second priority).
 | Open external | open_in_new |
 | Close | close |
 | Active check | check_circle |
-| Empty state (chat) | sparkles |
+| Empty state (chat) | auto_awesome |
 
 Rules: 24px standard, 18px inside buttons/chips/tool rows, 16px inside switches;
 icons never carry color alone (always paired with text or tooltip).
@@ -671,8 +672,9 @@ icons never carry color alone (always paired with text or tooltip).
 
 ## 14. Rollout Plan
 
-1. **Foundation**: `CopilotMd3Tokens`, `CopilotMd3Scheme`, `CopilotMd3Motion`,
-   fonts (Roboto Regular/Medium + license), curated Material Symbols SVGs.
+1. **Foundation** (implemented): `CopilotMd3Tokens`, `CopilotMd3Scheme`,
+   `CopilotMd3Motion`, `CopilotMd3Icons`, bundled Roboto (Regular/Medium +
+   Apache-2.0 license), curated Material Symbols SVGs.
 2. **Base components**: button, icon button, card, text field, chip, list item,
    divider, badge, tooltip, state layer.
 3. **Dock and chat**: header, chat view (cards, bubbles, tool rows, streaming),

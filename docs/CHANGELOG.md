@@ -7,6 +7,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Material 3 foundation** (`addons/godot-copilot/src/ui/md3/`):
+  `CopilotMd3Tokens` (color roles light/dark, type scale, shape, elevation,
+  states, motion), `CopilotMd3Scheme` (role resolution, editor light/dark
+  detection), `CopilotMd3Motion` (durations, easings, springs, cubic-bezier
+  sampler, Tween helpers), `CopilotMd3Icons` (bundled Material Symbols with
+  editor-icon fallback).
+- **Bundled design assets**: Roboto Regular/Medium (`assets/fonts/`, Apache-2.0)
+  and a curated 40-icon Material Symbols set as white 24px SVGs
+  (`assets/symbols/`).
+
 ### Changed
 
 - **UI design concept reworked**: the plugin now targets its own Material 3-based
