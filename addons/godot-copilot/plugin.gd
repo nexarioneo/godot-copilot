@@ -120,7 +120,8 @@ func _create_dock_shortcut() -> Shortcut:
 	event.keycode = KEY_C
 	event.alt_pressed = true
 	event.shift_pressed = true
-	shortcut.add_event(event)
+	var events: Array[InputEvent] = [event]
+	shortcut.events = events
 	return shortcut
 
 func _set_property_if_supported(object: Object, property: StringName, value: Variant) -> void:

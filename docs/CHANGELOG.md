@@ -82,6 +82,16 @@ no file was kept as it was.
   message cards, no longer raw `append_text()` into one big RichTextLabel.
 - **Sticky/round-robin**: sticky applies only when multiple keys are enabled, and the
   counter does not leak between providers.
+- **Godot 4.7.2 compatibility** (found by the first smoke test):
+  - `HTTPRequest.request()` calls (key tester, model import, `read_url`/`http_request`,
+    MCP over HTTP) used the `HTTPClient` argument order; they now pass
+    `(url, headers, method, body)`.
+  - `Shortcut.add_event()` and `RichTextLabel.push_italic()` are not real APIs; the
+    dock shortcut now sets `events` and notices use `push_italics()`.
+  - `CopilotTheme` accessors accept any `Node` and look up theme values dynamically, so
+    `AcceptDialog`-based dialogs (`Window`, not `Control`) no longer fail to compile.
+  - Explicit types for Variant ternaries (`write_file`, `http_request` body) and for
+    `PackedScene.instantiate()` (`instantiate_scene`), fixing GDScript inference errors.
 
 ### Removed
 

@@ -138,7 +138,7 @@ func write_file(args: Dictionary) -> Dictionary:
 	if not args.has("content"):
 		return _error("Parameter 'content' is required.")
 	var content_value = args.get("content", "")
-	var content := content_value if content_value is String else JSON.stringify(content_value)
+	var content: String = content_value if content_value is String else JSON.stringify(content_value)
 	var err := CopilotPaths.write_text(path, content)
 	if err != OK:
 		return _error("Failed to write file (code " + str(err) + ").")

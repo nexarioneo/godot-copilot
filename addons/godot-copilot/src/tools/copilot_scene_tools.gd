@@ -111,7 +111,7 @@ func instantiate_scene(args: Dictionary) -> Dictionary:
 	var parent := _resolve_node(str(args.get("parent_path", ".")))
 	if parent == null:
 		return _error("Parent node not found: " + str(args.get("parent_path", "")))
-	var instance := packed.instantiate()
+	var instance := (packed as PackedScene).instantiate()
 	var instance_name := str(args.get("name", "")).strip_edges()
 	if not instance_name.is_empty():
 		instance.name = instance_name

@@ -673,7 +673,7 @@ func _test_key(index: int) -> bool:
 			"max_tokens": 1,
 			"messages": [{"role": "user", "content": "ping"}]
 		})
-		err = request.request(base + "/messages", HTTPClient.METHOD_POST, headers, body)
+		err = request.request(base + "/messages", headers, HTTPClient.METHOD_POST, body)
 	else:
 		if base.ends_with("/chat/completions"):
 			base = base.trim_suffix("/chat/completions")
@@ -683,7 +683,7 @@ func _test_key(index: int) -> bool:
 			"Authorization: Bearer " + api_key,
 			"User-Agent: GodotCopilot/2.0"
 		])
-		err = request.request(base + "/models", HTTPClient.METHOD_GET, headers, "")
+		err = request.request(base + "/models", headers, HTTPClient.METHOD_GET, "")
 	if err != OK:
 		request.queue_free()
 		return false
@@ -762,7 +762,7 @@ func _import_models() -> void:
 		headers.append("anthropic-version: 2023-06-01")
 	else:
 		headers.append("Authorization: Bearer " + api_key)
-	var err := request.request(base + "/models", HTTPClient.METHOD_GET, headers, "")
+	var err := request.request(base + "/models", headers, HTTPClient.METHOD_GET, "")
 	if err != OK:
 		request.queue_free()
 		_testing_import = false

@@ -273,8 +273,10 @@ All controls use native widgets; there is no custom styling besides the accent c
 
 ## 9. Icons (EditorIcons) & Fallback
 
-All icons are fetched at runtime with the pattern: `if has_theme_icon(name, "EditorIcons")`.
-Icon names used (verified present in Godot 4.7):
+All icons and colors are fetched through `CopilotTheme`, which queries the editor
+theme first, then the context node's theme via dynamic `has_theme_icon()` /
+`get_theme_icon()` checks (any `Node` works — both `Control` and `Window` callers),
+and finally falls back to plain text. Icon names used (verified present in Godot 4.7):
 
 | Need | Icon | Fallback |
 | --- | --- | --- |

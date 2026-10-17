@@ -16,28 +16,30 @@ const FALLBACK_DARK_2 := Color("#242424")
 const FALLBACK_DARK_3 := Color("#1e1e1e")
 const FALLBACK_SEPARATOR := Color("#3a3a3a")
 
-static func color(context: Control, names: PackedStringArray, fallback: Color) -> Color:
+static func color(context: Node, names: PackedStringArray, fallback: Color) -> Color:
 	var theme := EditorInterface.get_editor_theme()
 	if theme != null:
 		for name in names:
 			if theme.has_color(name, "Editor"):
 				return theme.get_color(name, "Editor")
-	if context != null and context.is_inside_tree():
+	if context != null and context.is_inside_tree() and context.has_method("has_theme_color"):
 		for name in names:
-			if context.has_theme_color(name, "Editor"):
-				return context.get_theme_color(name, "Editor")
+			if bool(context.call("has_theme_color", name, "Editor")):
+				var found: Color = context.call("get_theme_color", name, "Editor")
+				return found
 	return fallback
 
-static func icon(context: Control, names: PackedStringArray) -> Texture2D:
+static func icon(context: Node, names: PackedStringArray) -> Texture2D:
 	var theme := EditorInterface.get_editor_theme()
 	if theme != null:
 		for name in names:
 			if theme.has_icon(name, "EditorIcons"):
 				return theme.get_icon(name, "EditorIcons")
-	if context != null and context.is_inside_tree():
+	if context != null and context.is_inside_tree() and context.has_method("has_theme_icon"):
 		for name in names:
-			if context.has_theme_icon(name, "EditorIcons"):
-				return context.get_theme_icon(name, "EditorIcons")
+			if bool(context.call("has_theme_icon", name, "EditorIcons")):
+				var found: Texture2D = context.call("get_theme_icon", name, "EditorIcons")
+				return found
 	return null
 
 # Mirrors the DESIGN.md §9 pattern: icon first, fallback text when the icon is missing.
@@ -51,31 +53,31 @@ static func apply_icon(button: Button, names: PackedStringArray, fallback_text: 
 
 # --- Semantic colors ---
 
-static func accent_color(context: Control) -> Color:
+static func accent_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["accent_color"]), FALLBACK_ACCENT)
 
-static func font_color(context: Control) -> Color:
+static func font_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["font_color"]), FALLBACK_FONT)
 
-static func font_placeholder_color(context: Control) -> Color:
+static func font_placeholder_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["font_placeholder_color"]), FALLBACK_PLACEHOLDER)
 
-static func font_disabled_color(context: Control) -> Color:
+static func font_disabled_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["font_disabled_color"]), FALLBACK_DISABLED)
 
-static func warning_color(context: Control) -> Color:
+static func warning_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["warning_color"]), FALLBACK_WARNING)
 
-static func success_color(context: Control) -> Color:
+static func success_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["success_color"]), FALLBACK_SUCCESS)
 
-static func error_color(context: Control) -> Color:
+static func error_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["error_color"]), FALLBACK_ERROR)
 
-static func separator_color(context: Control) -> Color:
+static func separator_color(context: Node) -> Color:
 	return color(context, PackedStringArray(["separator_color"]), FALLBACK_SEPARATOR)
 
-static func dark_color(context: Control, level := 2) -> Color:
+static func dark_color(context: Node, level := 2) -> Color:
 	var name := "dark_color_" + str(level)
 	var fallback := FALLBACK_DARK_2
 	match level:
@@ -85,7 +87,7 @@ static func dark_color(context: Control, level := 2) -> Color:
 			fallback = FALLBACK_DARK_3
 	return color(context, PackedStringArray([name]), fallback)
 
-static func status_color(context: Control, agent_state: String) -> Color:
+static func status_color(context: Node, agent_state: String) -> Color:
 	match agent_state:
 		"idle":
 			return success_color(context)
@@ -96,7 +98,7 @@ static func status_color(context: Control, agent_state: String) -> Color:
 		_:
 			return font_placeholder_color(context)
 
-static func status_text(context: Control, agent_state: String) -> String:
+static func status_text(context: Node, agent_state: String) -> String:
 	match agent_state:
 		"idle":
 			return "Ready"
@@ -115,7 +117,7 @@ static func status_text(context: Control, agent_state: String) -> String:
 
 # --- StyleBox ---
 
-static func card_style(context: Control, border_color: Color = Color(0, 0, 0, 0), border_width := 0) -> StyleBoxFlat:
+static func card_style(context: Node, border_color: Color = Color(0, 0, 0, 0), border_width := 0) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = dark_color(context, 2)
 	style.corner_radius_top_left = 4
@@ -134,7 +136,7 @@ static func card_style(context: Control, border_color: Color = Color(0, 0, 0, 0)
 		style.border_color = border_color
 	return style
 
-static func row_style(context: Control, selected := false) -> StyleBoxFlat:
+static func row_style(context: Node, selected := false) -> StyleBoxFlat:
 	var style := card_style(context)
 	style.content_margin_top = 4
 	style.content_margin_bottom = 4

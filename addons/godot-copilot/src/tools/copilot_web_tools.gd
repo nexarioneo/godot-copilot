@@ -35,7 +35,7 @@ func http_request(args: Dictionary, host: Node) -> Dictionary:
 	if headers_value is Dictionary:
 		headers = headers_value
 	var body_value = args.get("body", "")
-	var body := body_value if body_value is String else JSON.stringify(body_value)
+	var body: String = body_value if body_value is String else JSON.stringify(body_value)
 	var max_chars := clampi(int(args.get("max_chars", DEFAULT_MAX_CHARS)), 200, MAX_BODY_CHARS)
 	return await _fetch(url, method_name, headers, body, max_chars, host)
 
@@ -59,7 +59,7 @@ func _fetch(url: String, method_name: String, headers: Dictionary, body: String,
 		if clean_body.begins_with("{") or clean_body.begins_with("["):
 			header_array.append("Content-Type: application/json")
 
-	var err := request.request(url, METHOD_MAP[method_name], header_array, body)
+	var err := request.request(url, header_array, METHOD_MAP[method_name], body)
 	if err != OK:
 		request.queue_free()
 		return {"success": false, "error": "Failed to start the request (code " + str(err) + ")."}

@@ -183,7 +183,7 @@ func _send_http(server_config: Dictionary, request: Dictionary, host: Node) -> D
 	if not token.is_empty():
 		headers.append("Authorization: Bearer " + token)
 
-	var err := http_request.request(url, HTTPClient.METHOD_POST, headers, JSON.stringify(request))
+	var err := http_request.request(url, headers, HTTPClient.METHOD_POST, JSON.stringify(request))
 	if err != OK:
 		http_request.queue_free()
 		return _error("Failed to send the MCP request (code " + str(err) + ").")

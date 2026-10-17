@@ -88,7 +88,7 @@ func add_notice(text: String) -> void:
 	label.scroll_active = false
 	label.selection_enabled = true
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.push_italic()
+	label.push_italics()
 	label.push_color(CopilotTheme.font_placeholder_color(self))
 	label.add_text("• " + text)
 	label.pop()
