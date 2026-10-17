@@ -274,9 +274,18 @@ func _refresh_output_text() -> void:
 	_output_button.text = "Show less" if _output_fully_shown else "Show more"
 
 static func mono_font() -> Font:
+	var settings := EditorInterface.get_editor_settings()
+	if settings != null:
+		var configured: Variant = settings.get_setting("interface/editor/code_font")
+		if configured is Font:
+			return configured as Font
+		if configured is String and not (configured as String).is_empty() and ResourceLoader.exists(configured as String):
+			return load(configured as String) as Font
 	var theme := EditorInterface.get_editor_theme()
 	if theme != null:
 		for font_name in ["mono_font", "source", "mono"]:
 			if theme.has_font(font_name, "EditorFonts"):
-				return theme.get_font(font_name, "EditorFonts")
+				var theme_font := theme.get_font(font_name, "EditorFonts")
+				if theme_font != null:
+					return theme_font
 	return null

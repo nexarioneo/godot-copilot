@@ -38,6 +38,7 @@ var _header_buttons: Array[CopilotMd3IconButton] = []
 
 func _ready() -> void:
 	_build_ui()
+	_sync_from_agent()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_THEME_CHANGED and _surface != null:
@@ -69,6 +70,11 @@ func setup(p_agent: CopilotAgent) -> void:
 	_chat_view.retry_requested.connect(_on_retry_requested)
 	_composer.submitted.connect(_on_composer_submitted)
 	_composer.stop_requested.connect(_on_stop_pressed)
+	_sync_from_agent()
+
+func _sync_from_agent() -> void:
+	if agent == null:
+		return
 	_update_status(agent.state())
 	_update_buttons()
 	_update_model_label()

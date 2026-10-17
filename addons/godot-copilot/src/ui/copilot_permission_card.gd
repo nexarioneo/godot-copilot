@@ -116,7 +116,6 @@ func _build_ui() -> void:
 	_target_label = Label.new()
 	CopilotMd3Tokens.apply_text(_target_label, "body-small")
 	_target_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_target_label.selection_enabled = true
 	box.add_child(_target_label)
 
 	_scope_box = HFlowContainer.new()

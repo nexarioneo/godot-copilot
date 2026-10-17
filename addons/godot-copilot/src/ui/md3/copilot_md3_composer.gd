@@ -35,15 +35,20 @@ func set_scheme(scheme: CopilotMd3Scheme) -> void:
 	_apply()
 
 func set_busy(busy: bool) -> void:
+	_ensure_built()
 	_busy = busy
 	_stop_button.visible = busy
 	_hint_label.visible = _input.has_focus() and not busy
 	_update_send_state()
 
 func text() -> String:
+	if _input == null:
+		return ""
 	return _input.text
 
 func clear() -> void:
+	if _input == null:
+		return
 	_input.clear()
 	_update_height()
 	_update_send_state()
