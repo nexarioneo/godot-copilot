@@ -35,6 +35,10 @@ no file was kept as it was.
 - **Explicit multi-key strategies**: `round_robin` / `sticky_count`.
 - **Native tooltips & icons** across the UI; provider logo badges moved to
   `assets/providers/`.
+- **Material 3 reference** (`docs/MATERIAL3.md`): consolidated design-system data
+  (color roles and palettes, type scale, shape, elevation, motion, states, component
+  specifications, accessibility) compiled as the foundation for the plugin's own UI
+  component library.
 
 ### Changed
 

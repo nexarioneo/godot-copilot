@@ -17,6 +17,7 @@ Current version: **2.0.0** (full rebuild — see [docs/CHANGELOG.md](docs/CHANGE
 | Document | Content | Use when |
 | --- | --- | --- |
 | [docs/DESIGN.md](docs/DESIGN.md) | **Visual design**: GodotStyle, right dock layout, message cards, permission card, dialog layouts, icons, visual checklist | Changing look/UI/UX |
+| [docs/MATERIAL3.md](docs/MATERIAL3.md) | **Material 3 reference**: color roles and palettes, type scale, shape, elevation, motion, states, component specs, accessibility, Godot mapping concept | Redesigning the UI / looking up design values |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | **Technical architecture**: folder structure, classes, turn data flow, config schema v2, providers, permission engine, tool system, subagents, session/memory, editor integration | Changing logic/backend/integration |
 | [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | **Conventions**: GDScript style, file/class/function naming, config access, UI, providers, permissions, tools, paths, git | Writing/reviewing any code |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | **Providers**: kinds, presets, multi-key strategy, testing, model import, streaming, troubleshooting | Touching providers/APIs |
@@ -35,7 +36,7 @@ technical topics only. Do not mix their contents.
 godot-copilot/
 ├── AGENTS.md                  ← this document
 ├── README.md                  ← project overview & quick start
-├── docs/                      ← documentation (DESIGN, ARCHITECTURE, CONVENTIONS, PROVIDERS, CHANGELOG)
+├── docs/                      ← documentation (DESIGN, MATERIAL3, ARCHITECTURE, CONVENTIONS, PROVIDERS, CHANGELOG)
 ├── project.godot              ← test project; plugins are enabled in [editor_plugins]
 └── addons/godot-copilot/
     ├── plugin.cfg             ← plugin metadata (name, version, script)
