@@ -902,8 +902,8 @@ The plugin moves from "follow the Godot editor theme" to **its own design system
   from §7.2/7.3; respect a reduce-motion setting if the editor offers one.
 - **Fonts**: decide between bundling Roboto (Apache-2.0, authentic M3) or starting
   from the editor font with M3 metrics — see open decisions.
-- **Sizing**: M3 dp treated as px (desktop); keep a single global scale multiplier
-  for future density control.
+- **Sizing**: M3 dp treated as px (desktop); no global scale factor in the first
+  rollout (density control reserved for later).
 - **Light/dark**: detect from the editor theme's base color brightness, with a
   manual override in plugin settings.
 - **Custom semantic roles**: success/warning/info are extension tokens (fill +
@@ -916,9 +916,9 @@ The plugin moves from "follow the Godot editor theme" to **its own design system
 | User message | `primary-container` bubble, corner 16dp with 4dp bottom-end |
 | Assistant message | `surface-container-high` card, corner 16dp, on-surface text |
 | Tool row | `surface-container-low` card, outline-variant border, label-medium title |
-| Permission card | card with tertiary-container header, filled tonal actions |
-| Status bar | label-small, status color from role (success/warning/error overrides) |
-| Composer | outlined text field + filled icon button (send) + tonal stop |
+| Permission card | elevated card (level 1), 28dp tertiary icon badge, filter-chip scope options, text + tonal + filled actions |
+| Status bar | label-small, state dot + text, status colors from extension roles |
+| Composer | surface-container-highest pill, full corner (24dp when multiline), filled send + tonal stop icon buttons |
 
 ---
 

@@ -16,7 +16,7 @@ Current version: **2.0.0** (full rebuild — see [docs/CHANGELOG.md](docs/CHANGE
 
 | Document | Content | Use when |
 | --- | --- | --- |
-| [docs/DESIGN.md](docs/DESIGN.md) | **Visual design**: GodotStyle, right dock layout, message cards, permission card, dialog layouts, icons, visual checklist | Changing look/UI/UX |
+| [docs/DESIGN.md](docs/DESIGN.md) | **Visual design**: Material 3-based own design system, component library, dock/chat/dialog layouts, icons, motion, visual checklist | Changing look/UI/UX |
 | [docs/MATERIAL3.md](docs/MATERIAL3.md) | **Material 3 reference**: color roles and palettes, type scale, shape, elevation, motion, states, component specs, accessibility, Godot mapping concept | Redesigning the UI / looking up design values |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | **Technical architecture**: folder structure, classes, turn data flow, config schema v2, providers, permission engine, tool system, subagents, session/memory, editor integration | Changing logic/backend/integration |
 | [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | **Conventions**: GDScript style, file/class/function naming, config access, UI, providers, permissions, tools, paths, git | Writing/reviewing any code |

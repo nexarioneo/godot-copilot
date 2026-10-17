@@ -5,6 +5,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **UI design concept reworked**: the plugin now targets its own Material 3-based
+  component library (standalone components derived from stock Godot controls)
+  instead of following the editor theme; `docs/DESIGN.md` was rewritten for the new
+  concept, with reference data in `docs/MATERIAL3.md`.
+
+---
+
 ## [2.0.0] — 2026-10-17
 
 Full rebuild from scratch. The structure, naming, system flow, and UI were rebuilt;

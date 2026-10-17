@@ -130,7 +130,7 @@ the v1 location `res://.godot/.copilot/`.
 godot-copilot/
 ├── AGENTS.md                  repository index for humans and AI agents
 ├── README.md                  this file
-├── docs/                      DESIGN, ARCHITECTURE, CONVENTIONS, PROVIDERS, CHANGELOG
+├── docs/                      DESIGN, MATERIAL3, ARCHITECTURE, CONVENTIONS, PROVIDERS, CHANGELOG
 ├── project.godot              development/test project (plugin enabled)
 └── addons/godot-copilot/      the plugin itself
     ├── plugin.cfg             plugin metadata
@@ -147,7 +147,8 @@ godot-copilot/
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — technical architecture and data flow.
-- [docs/DESIGN.md](docs/DESIGN.md) — visual design and dialog layouts.
+- [docs/DESIGN.md](docs/DESIGN.md) — visual design: Material 3-based component library and layouts.
+- [docs/MATERIAL3.md](docs/MATERIAL3.md) — Material 3 reference data (tokens, component specs).
 - [docs/PROVIDERS.md](docs/PROVIDERS.md) — provider kinds, presets, and key management.
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — code conventions.
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — version history.
