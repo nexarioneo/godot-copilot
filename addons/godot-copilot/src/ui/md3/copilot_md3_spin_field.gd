@@ -75,16 +75,23 @@ func _apply() -> void:
 	if _scheme == null or _up_button == null:
 		return
 	var radius := CopilotMd3Tokens.corner_radius("extra-small", Vector2(24, STEP_SIZE))
+	var transparent := Color(0.0, 0.0, 0.0, 0.0)
 	for button in [_up_button, _down_button]:
-		button.add_theme_stylebox_override("normal", _scheme.box("", radius, "", 0))
-		button.add_theme_stylebox_override("hover", _scheme.box(_scheme.alpha("on-surface", 0.08), radius, "", 0))
-		button.add_theme_stylebox_override("pressed", _scheme.box(_scheme.alpha("on-surface", 0.10), radius, "", 0))
-		button.add_theme_stylebox_override("disabled", _scheme.box("", radius, "", 0))
+		button.add_theme_stylebox_override("normal", _step_box(transparent, radius))
+		button.add_theme_stylebox_override("hover", _step_box(_scheme.alpha("on-surface", 0.08), radius))
+		button.add_theme_stylebox_override("pressed", _step_box(_scheme.alpha("on-surface", 0.10), radius))
+		button.add_theme_stylebox_override("disabled", _step_box(transparent, radius))
 		button.add_theme_color_override("icon_normal_color", _scheme.color("on-surface-variant"))
 		button.add_theme_color_override("icon_hover_color", _scheme.color("on-surface"))
 		button.add_theme_color_override("icon_pressed_color", _scheme.color("on-surface"))
 		button.add_theme_color_override("icon_focus_color", _scheme.color("on-surface"))
 		button.add_theme_color_override("icon_disabled_color", _scheme.disabled_content("on-surface"))
+
+func _step_box(fill_color: Color, radius: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill_color
+	sb.set_corner_radius_all(radius)
+	return sb
 
 func _make_step_button(icon_name: String, editor_fallback: String, tooltip: String) -> Button:
 	var button := Button.new()

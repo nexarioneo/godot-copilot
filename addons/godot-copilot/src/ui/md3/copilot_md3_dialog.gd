@@ -15,6 +15,7 @@ const PRESSED_OPACITY := 0.10
 
 var _scheme: CopilotMd3Scheme = null
 var _body: VBoxContainer = null
+var _cancel_button: Button = null
 var _ok_variant := CopilotMd3Button.VARIANT_FILLED
 var _ok_label := "Close"
 
@@ -24,8 +25,8 @@ func configure(scheme: CopilotMd3Scheme, title_text: String, ok_text: String = "
 	title = title_text
 	ok_button_text = ok_text
 	_build_body()
-	if not cancel_text.is_empty():
-		add_cancel_button(cancel_text)
+	if not cancel_text.is_empty() and _cancel_button == null:
+		_cancel_button = add_cancel_button(cancel_text)
 	_apply()
 
 func set_scheme(scheme: CopilotMd3Scheme) -> void:
@@ -71,7 +72,7 @@ func _apply() -> void:
 	add_theme_color_override("title_color", _scheme.color("on-surface"))
 	ok_button_text = _ok_label
 	_style_action(get_ok_button(), _ok_variant)
-	_style_action(get_cancel_button(), CopilotMd3Button.VARIANT_TEXT)
+	_style_action(_cancel_button, CopilotMd3Button.VARIANT_TEXT)
 
 func _style_action(button: Button, variant: String) -> void:
 	if button == null:
