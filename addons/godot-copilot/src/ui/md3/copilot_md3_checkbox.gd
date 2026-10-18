@@ -15,6 +15,7 @@ const PRESSED_OPACITY := 0.10
 
 var _scheme: CopilotMd3Scheme = null
 var _held := false
+var _touch_device := false
 
 var _unchecked_box: StyleBoxFlat = null
 var _unchecked_hover_box: StyleBoxFlat = null
@@ -39,6 +40,9 @@ func _ready() -> void:
 	alignment = HORIZONTAL_ALIGNMENT_LEFT
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)
+	# Touch devices only show the pressed layer; a hover layer would linger
+	# after a tap and read as a stray circle around the box.
+	_touch_device = DisplayServer.is_touchscreen_available()
 	if not toggled.is_connected(_on_toggled):
 		toggled.connect(_on_toggled)
 	if not button_down.is_connected(_on_button_down):
@@ -135,7 +139,7 @@ func _draw() -> void:
 	if not disabled:
 		if _held:
 			layer_alpha = PRESSED_OPACITY
-		elif is_hovered():
+		elif not _touch_device and is_hovered():
 			layer_alpha = HOVER_OPACITY
 	var layer_role := "on-surface"
 	if button_pressed:

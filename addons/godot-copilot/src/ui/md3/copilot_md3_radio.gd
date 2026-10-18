@@ -13,12 +13,15 @@ const GAP := 16
 const HEIGHT_ONE_LINE := 48
 const HEIGHT_TWO_LINE := 64
 const HOVER_OPACITY := 0.08
+const PRESSED_OPACITY := 0.10
 
 var _scheme: CopilotMd3Scheme = null
 var _title := ""
 var _supporting := ""
 var _selected := false
 var _hovered := false
+var _held := false
+var _touch_device := false
 
 var _text_column: VBoxContainer = null
 var _title_label: Label = null
@@ -50,6 +53,10 @@ func _ready() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)
+	# Touch devices keep the pressed state layer (shown while the finger is
+	# down) but never show a hover or focus halo, which would linger after a
+	# tap and stack extra circles onto the radio.
+	_touch_device = DisplayServer.is_touchscreen_available()
 	_build_ui()
 	_refresh_ui()
 	mouse_entered.connect(func() -> void:
@@ -58,6 +65,14 @@ func _ready() -> void:
 	)
 	mouse_exited.connect(func() -> void:
 		_hovered = false
+		queue_redraw()
+	)
+	button_down.connect(func() -> void:
+		_held = true
+		queue_redraw()
+	)
+	button_up.connect(func() -> void:
+		_held = false
 		queue_redraw()
 	)
 	focus_entered.connect(queue_redraw)
@@ -118,13 +133,19 @@ func _draw() -> void:
 	if _scheme == null:
 		return
 	var center := Vector2(PAD_H + CIRCLE * 0.5, size.y * 0.5)
-	if not disabled and (_hovered or has_focus()):
-		draw_circle(center, CIRCLE * 0.5 + 8.0, _scheme.alpha("primary", HOVER_OPACITY))
+	if not disabled:
+		var layer_alpha := 0.0
+		if _held:
+			layer_alpha = PRESSED_OPACITY
+		elif not _touch_device and (_hovered or has_focus()):
+			layer_alpha = HOVER_OPACITY
+		if layer_alpha > 0.0:
+			draw_circle(center, CIRCLE * 0.5 + 8.0, _scheme.alpha("primary", layer_alpha))
 	var ring_color := _scheme.color("primary") if _selected else _scheme.color("on-surface-variant")
 	if disabled:
 		ring_color = _scheme.disabled_content("on-surface")
 	draw_arc(center, CIRCLE * 0.5 - 1.0, 0.0, TAU, 32, ring_color, 2.0, true)
 	if _selected:
 		draw_circle(center, DOT * 0.5, ring_color)
-	if has_focus():
+	if has_focus() and CopilotMd3Tokens.focus_ring_visible():
 		draw_arc(center, CIRCLE * 0.5 + 4.0, 0.0, TAU, 32, _scheme.color("primary"), 2.0, true)
