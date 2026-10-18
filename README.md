@@ -7,7 +7,21 @@ terminal, web, scenes, MCP), spawns subagents for isolated tasks, and routes
 every sensitive action through an `action(target)` permission system.
 
 Current version: **2.0.0** — see [docs/CHANGELOG.md](docs/CHANGELOG.md).
-Author: **Nexarioneo**.
+Author: **Nexarioneo**. License: **MIT** — see [LICENSE](LICENSE).
+
+---
+
+## Project Status
+
+**Early version.** Godot Copilot is a young project: it works, but expect rough
+edges, incomplete polish, and bugs. It executes tools (files, terminal, web,
+scenes, editor settings) with real effects on your project, so keep regular
+backups of your work and review carefully what you grant permission for. Bug
+reports and suggestions are welcome through GitHub Issues.
+
+**AI-assisted development.** This project was built with AI assistance: the
+code, documentation, and UI were written in collaboration with an AI coding
+agent, then reviewed and smoke-tested by the author.
 
 ---
 
@@ -130,6 +144,7 @@ the v1 location `res://.godot/.copilot/`.
 godot-copilot/
 ├── AGENTS.md                  repository index for humans and AI agents
 ├── README.md                  this file
+├── LICENSE                    MIT license text
 ├── docs/                      DESIGN, MATERIAL3, ARCHITECTURE, CONVENTIONS, PROVIDERS, CHANGELOG
 ├── project.godot              development/test project (plugin enabled)
 └── addons/godot-copilot/      the plugin itself
@@ -166,5 +181,9 @@ godot-copilot/
 
 ## License
 
-This repository does not contain a `LICENSE` file yet. Until one is added, all
-rights belong to the project author.
+MIT — see [LICENSE](LICENSE). Copyright (c) 2026 **Nexarioneo**.
+
+Third-party assets bundled with the plugin keep their own licenses: the Roboto
+fonts (`addons/godot-copilot/assets/fonts/`) and the Material Symbols icons
+(`addons/godot-copilot/assets/symbols/`) are Apache License 2.0; see the README
+and `LICENSE.txt` files inside those folders.

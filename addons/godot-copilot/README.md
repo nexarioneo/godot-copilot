@@ -6,6 +6,10 @@ execution, and action permissions — without touching your project code unless 
 
 Version: **2.0.0** — see [docs/CHANGELOG.md](../../docs/CHANGELOG.md).
 
+**Early version**: built with AI assistance, reviewed by its author; features
+work but the plugin may still contain bugs and rough edges. License: **MIT**
+(Author **Nexarioneo**), see [LICENSE](../../LICENSE).
+
 ---
 
 ## Features
