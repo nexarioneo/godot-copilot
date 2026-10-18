@@ -3,9 +3,16 @@ class_name CopilotMd3Tabs
 extends TabContainer
 # Material 3 primary tabs: no container fill, a 3px primary bottom indicator
 # on the selected tab, label-large text in on-surface-variant, and a small
-# surface gap between the tab bar and the page content.
+# surface gap between the tab bar and the page content. The indicator slides
+# between tabs and the incoming page fades in (250ms / 200ms).
+
+const INDICATOR_HEIGHT := 3.0
 
 var _scheme: CopilotMd3Scheme = null
+var _indicator_x := -1.0
+var _indicator_width := 0.0
+var _indicator_tween: Tween = null
+var _page_tween: Tween = null
 
 func configure(scheme: CopilotMd3Scheme) -> void:
 	_scheme = scheme
@@ -18,7 +25,10 @@ func set_scheme(scheme: CopilotMd3Scheme) -> void:
 func _ready() -> void:
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)
+	tab_changed.connect(_on_tab_changed)
+	resized.connect(_snap_indicator)
 	_apply()
+	_snap_indicator.call_deferred()
 
 func _apply() -> void:
 	if _scheme == null:
@@ -37,11 +47,9 @@ func _apply() -> void:
 	add_theme_constant_override("side_margin", 0)
 
 	var transparent := Color(0.0, 0.0, 0.0, 0.0)
+	# No border on the selected tab: the indicator is drawn by this control so
+	# it can animate between tabs.
 	var selected := _tab_box(transparent)
-	selected.border_width_bottom = 3
-	selected.border_color = _scheme.color("primary")
-	selected.corner_radius_top_left = 3
-	selected.corner_radius_top_right = 3
 	var unselected := _tab_box(transparent)
 	var hovered := _tab_box(_scheme.alpha("on-surface", 0.08))
 	hovered.corner_radius_top_left = 3
@@ -55,6 +63,88 @@ func _apply() -> void:
 	var panel := StyleBoxEmpty.new()
 	panel.content_margin_top = CopilotMd3Tokens.spacing("s")
 	add_theme_stylebox_override("panel", panel)
+	queue_redraw()
+
+func _draw() -> void:
+	if _scheme == null or _indicator_x < 0.0 or _indicator_width <= 0.0:
+		return
+	var bar := get_tab_bar()
+	if bar == null:
+		return
+	var limit := bar.position.y + bar.size.y
+	var rect := Rect2(
+		Vector2(_indicator_x, limit - INDICATOR_HEIGHT),
+		Vector2(_indicator_width, INDICATOR_HEIGHT)
+	)
+	draw_rect(rect, _scheme.color("primary"))
+
+func _tab_rect(index: int) -> Rect2:
+	var bar := get_tab_bar()
+	if bar == null or index < 0 or index >= get_tab_count():
+		return Rect2()
+	var local := bar.get_tab_rect(index)
+	local.position += bar.position
+	return local
+
+func _snap_indicator() -> void:
+	var target := _tab_rect(current_tab)
+	if target.size.x <= 0.0:
+		return
+	_indicator_x = target.position.x
+	_indicator_width = target.size.x
+	queue_redraw()
+
+func _on_tab_changed(_tab: int) -> void:
+	_animate_indicator()
+	_fade_in_current_page()
+
+func _animate_indicator() -> void:
+	var target := _tab_rect(current_tab)
+	if target.size.x <= 0.0:
+		return
+	if _indicator_x < 0.0:
+		_snap_indicator()
+		return
+	if not is_inside_tree():
+		_snap_indicator()
+		return
+	if _indicator_tween != null and _indicator_tween.is_valid():
+		_indicator_tween.kill()
+	var from := Vector2(_indicator_x, _indicator_width)
+	var to := Vector2(target.position.x, target.size.x)
+	var apply := func(weight: float) -> void:
+		var current := from.lerp(to, weight)
+		_indicator_x = current.x
+		_indicator_width = current.y
+		queue_redraw()
+	_indicator_tween = create_tween()
+	CopilotMd3Motion.animate_eased(
+		_indicator_tween,
+		apply,
+		0.0,
+		1.0,
+		CopilotMd3Motion.duration_seconds("medium1"),
+		"emphasized-decelerate"
+	)
+
+func _fade_in_current_page() -> void:
+	var page := get_current_tab_control()
+	if page == null or not is_inside_tree():
+		return
+	if _page_tween != null and _page_tween.is_valid():
+		_page_tween.kill()
+	page.modulate.a = 0.0
+	var apply := func(weight: float) -> void:
+		page.modulate.a = weight
+	_page_tween = create_tween()
+	CopilotMd3Motion.animate_eased(
+		_page_tween,
+		apply,
+		0.0,
+		1.0,
+		CopilotMd3Motion.duration_seconds("short4"),
+		"standard-decelerate"
+	)
 
 func _tab_box(fill_color: Color) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
@@ -62,5 +152,5 @@ func _tab_box(fill_color: Color) -> StyleBoxFlat:
 	box.content_margin_left = CopilotMd3Tokens.spacing("l")
 	box.content_margin_right = CopilotMd3Tokens.spacing("l")
 	box.content_margin_top = CopilotMd3Tokens.spacing("m")
-	box.content_margin_bottom = CopilotMd3Tokens.spacing("s") + 3
+	box.content_margin_bottom = CopilotMd3Tokens.spacing("s") + int(INDICATOR_HEIGHT)
 	return box

@@ -13,11 +13,14 @@ const THUMB_MARGIN := 4
 const ICON_SIZE := 16
 const HALO_RADIUS := 20.0
 const HOVER_OPACITY := 0.08
+const PRESSED_OPACITY := 0.10
 
 var _scheme: CopilotMd3Scheme = null
 var _icon_name := ""
 var _progress := 0.0
 var _hovered := false
+var _held := false
+var _touch_device := false
 var _track_box: StyleBoxFlat = null
 var _track_on_color := Color(0.0, 0.0, 0.0, 0.0)
 var _track_off_color := Color(0.0, 0.0, 0.0, 0.0)
@@ -54,6 +57,10 @@ func _ready() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)
+	# Touch devices keep the pressed state layer (shown while the finger is
+	# down) but never show a hover or focus halo, which would linger after a
+	# tap and look like a stray circle.
+	_touch_device = DisplayServer.is_touchscreen_available()
 	_progress = 1.0 if button_pressed else 0.0
 	mouse_entered.connect(func() -> void:
 		_hovered = true
@@ -61,6 +68,14 @@ func _ready() -> void:
 	)
 	mouse_exited.connect(func() -> void:
 		_hovered = false
+		queue_redraw()
+	)
+	button_down.connect(func() -> void:
+		_held = true
+		queue_redraw()
+	)
+	button_up.connect(func() -> void:
+		_held = false
 		queue_redraw()
 	)
 	focus_entered.connect(queue_redraw)
@@ -126,11 +141,15 @@ func _draw() -> void:
 	var thumb_color := _thumb_off_color.lerp(_thumb_on_color, _progress)
 	if disabled:
 		thumb_color = _scheme.alpha("on-surface", 0.38)
-	elif _hovered or has_focus():
-		draw_circle(center, HALO_RADIUS, _scheme.alpha("on-surface", HOVER_OPACITY))
+	else:
+		var halo_opacity := 0.0
+		if _held:
+			halo_opacity = PRESSED_OPACITY
+		elif not _touch_device and (_hovered or has_focus()):
+			halo_opacity = HOVER_OPACITY
+		if halo_opacity > 0.0:
+			draw_circle(center, HALO_RADIUS, _scheme.alpha("on-surface", halo_opacity))
 	draw_circle(center, THUMB * 0.5, thumb_color)
 	if _icon_texture != null and not disabled:
 		var icon_rect := Rect2(center - Vector2(ICON_SIZE * 0.5, ICON_SIZE * 0.5), Vector2(ICON_SIZE, ICON_SIZE))
 		draw_texture_rect(_icon_texture, icon_rect, false, Color(_icon_color, _icon_color.a * _progress))
-	if has_focus():
-		draw_arc(center, HALO_RADIUS, 0.0, TAU, 32, _scheme.color("primary"), 2.0, true)
