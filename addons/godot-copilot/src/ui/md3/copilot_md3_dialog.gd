@@ -1,8 +1,9 @@
 @tool
 class_name CopilotMd3Dialog
 extends AcceptDialog
-# Material 3 dialog base: surface-container-high container (extra-large 28
-# corner, elevation 3), 24px body padding, Roboto type and restyled actions:
+# Material 3 dialog base: a borderless embedded window with a single
+# surface-container-high panel (extra-large 28 corner, elevation 3), an in-panel
+# headline-small title, 24px body padding, Roboto type and restyled actions:
 # the OK button becomes an M3 filled (or danger) button, an optional cancel
 # button becomes a text button. Callers add content through body().
 
@@ -15,6 +16,7 @@ const PRESSED_OPACITY := 0.10
 
 var _scheme: CopilotMd3Scheme = null
 var _body: VBoxContainer = null
+var _title_label: Label = null
 var _cancel_button: Button = null
 var _ok_variant := CopilotMd3Button.VARIANT_FILLED
 var _ok_label := "Close"
@@ -24,6 +26,7 @@ func configure(scheme: CopilotMd3Scheme, title_text: String, ok_text: String = "
 	_ok_label = ok_text
 	title = title_text
 	ok_button_text = ok_text
+	borderless = true
 	_build_body()
 	if not cancel_text.is_empty() and _cancel_button == null:
 		_cancel_button = add_cancel_button(cancel_text)
@@ -41,11 +44,38 @@ func set_ok_variant(button_variant: String) -> void:
 	_ok_variant = button_variant
 	_apply()
 
+func sync_scheme() -> bool:
+	# Re-resolves the editor theme mode (light/dark can change while a dialog
+	# instance stays alive) and rebuilds the dialog when it changed.
+	# Returns true when the mode changed.
+	if not is_inside_tree() or _scheme == null:
+		return false
+	var detected := CopilotMd3Scheme.for_node(self)
+	if detected == _scheme:
+		return false
+	_scheme = detected
+	if _body != null:
+		_apply()
+		_on_scheme_changed()
+	return true
+
+func _on_scheme_changed() -> void:
+	# Overridable hook: subclasses re-inject the new scheme into their widgets.
+	pass
+
 func _ready() -> void:
+	# Own title inside the panel: the embedded window frame draws the default
+	# editor decoration (square border + title bar) on top of our rounded
+	# panel, so the dialog is borderless and titles itself.
+	borderless = true
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)
 	_build_body()
 	_apply()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED:
+		sync_scheme()
 
 func _build_body() -> void:
 	if _body != null:
@@ -55,6 +85,11 @@ func _build_body() -> void:
 	_body.custom_minimum_size.x = 400
 	_body.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("l"))
 	add_child(_body)
+	_title_label = Label.new()
+	_title_label.name = "md3_title"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_body.add_child(_title_label)
 
 func _apply() -> void:
 	if _scheme == null:
@@ -63,13 +98,13 @@ func _apply() -> void:
 	panel.content_margin_left = PAD
 	panel.content_margin_right = PAD
 	panel.content_margin_bottom = PAD
-	panel.content_margin_top = CopilotMd3Tokens.spacing("s")
+	panel.content_margin_top = PAD
 	add_theme_stylebox_override("panel", panel)
-	var title_font := CopilotMd3Tokens.font_regular()
-	if title_font != null:
-		add_theme_font_override("title_font", title_font)
-	add_theme_font_size_override("title_font_size", CopilotMd3Tokens.type_size("headline-small"))
-	add_theme_color_override("title_color", _scheme.color("on-surface"))
+	if _title_label != null:
+		_title_label.text = title
+		_title_label.visible = not title.is_empty()
+		_title_label.add_theme_color_override("font_color", _scheme.color("on-surface"))
+		CopilotMd3Tokens.apply_text(_title_label, "headline-small")
 	ok_button_text = _ok_label
 	_style_action(get_ok_button(), _ok_variant)
 	_style_action(_cancel_button, CopilotMd3Button.VARIANT_TEXT)
