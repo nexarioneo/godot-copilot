@@ -325,11 +325,18 @@ General rules for every component in the library:
 - Size clamp: before every show the dialog sets `max_size` to the editor base
   control rect minus an 8px margin (`min_size` is pulled down first when the
   screen cannot fit it; `Window.max_size` exists from Godot 4.7, older engines
-  keep the content minimum as the only limit). The engine applies the maximum
-  after the content minimum, so on a screen smaller than the content the window
-  stops at the edge: the title stays visible, pages inside scroll, and the
-  action buttons are never pushed below the clipped bottom edge. The settings
-  and provider manager pages therefore keep their bodies scrollable.
+  keep the content minimum as the only limit). The clamp runs on `_ready`,
+  again on `about_to_popup` (so `popup_centered` recenters with the final
+  size) and once more when the window becomes visible. The engine applies the
+  maximum after the content minimum, so on a screen smaller than the content
+  the window stops at the edge: the title stays visible, pages inside scroll,
+  and the action buttons are never pushed below the clipped bottom edge. The
+  settings and provider manager pages therefore keep their bodies scrollable.
+- Position clamp: the engine centers embedded windows on the whole viewport
+  and pins a window taller than the editor area to the top, which cuts the
+  action bar off below the screen edge. After sizing, the dialog nudges its
+  position back inside the editor base rect so the title and the action
+  buttons stay reachable.
 - The dialog re-resolves the theme mode when shown and rebuilds its content when
   the editor switches light/dark while the instance is alive.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
@@ -358,6 +365,11 @@ General rules for every component in the library:
 - `CopilotMd3Radio` (implemented): `Button` row with a 20px radio circle
   (10px primary dot when selected), body-large title + optional body-small
   supporting text; exclusivity is managed by the caller.
+- State layer: only while held (10%), plus hover/focus in primary (8%) on
+  pointer devices. Touch devices skip the hover/focus layer, which would
+  linger after a tap, and the 2px focus ring is keyboard-only
+  (`CopilotMd3Tokens.focus_ring_visible()`); without both gates a tap stacked a
+  halo, the focus ring, the radio circle and the dot.
 - Used for: "Remember for this session", permissions preset selection (three
   radios with supporting text), model rows in dense lists (checkbox).
 

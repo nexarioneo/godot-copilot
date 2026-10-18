@@ -112,6 +112,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
   closed). Dialogs now set `max_size` to the editor rect before every show and
   the settings tab pages scroll, so the title, pages and Close button all stay
   reachable.
+- **Dialog position below the editor area**: the maximum size kept the window
+  from growing past the editor, but the engine centers embedded windows on the
+  whole viewport and pins a taller window to the top, so the action bar could
+  still sit below the visible bottom edge with the Close button unreachable.
+  Dialogs now re-clamp on `about_to_popup` (before the popup recenters) and
+  nudge their position back inside the editor rect after sizing.
 - **Tab indicator placed wrong**: the indicator the component draws landed 16px
   left and 12px above the bar's bottom edge, because `TabBar.position` is
   relative to the internal container the TabContainer keeps it in. It overlapped
@@ -121,6 +127,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
   touch devices (buttons, icon buttons, dialog actions, chips, list items,
   segmented buttons, checkboxes and tabs). A tap left the ring drawn next to the
   state layer, so a round icon button looked like two circles at once.
+- **Radio and checkbox circles on touch**: a Settings preset radio drew the
+  hover/focus state halo and (radio only) a 2px focus ring in addition to the
+  radio circle and the selected dot, so one tap showed three overlapping
+  circles. On touch devices the state layer now only follows a held press and
+  the radio focus ring is keyboard-only; the checkbox's hover layer got the
+  same touch gate.
 - **Switch animation stutter**: toggling while the thumb was still animating
   started a second tween that fought the first over the same progress value; a
   new toggle now stops the running tween and continues from its position.
