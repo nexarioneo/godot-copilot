@@ -8,6 +8,7 @@ extends Button
 
 const HEIGHT_ONE_LINE := 56
 const HEIGHT_TWO_LINE := 72
+const HEIGHT_DENSE := 48
 const PAD_H := 16
 const PAD_V := 8
 const HOVER_OPACITY := 0.08
@@ -19,6 +20,8 @@ var _subtitle := ""
 var _icon_name := ""
 var _editor_fallback := ""
 var _selected := false
+var _dense := false
+var _content_role := ""
 
 var _row: HBoxContainer = null
 var _icon_rect: TextureRect = null
@@ -43,6 +46,15 @@ func set_scheme(scheme: CopilotMd3Scheme) -> void:
 
 func set_selected(selected: bool) -> void:
 	_selected = selected
+	_apply()
+
+func set_dense(dense: bool) -> void:
+	_dense = dense
+	_refresh_ui()
+	_apply()
+
+func set_content_role(role: String) -> void:
+	_content_role = role
 	_apply()
 
 func add_trailing(control: Control) -> void:
@@ -109,7 +121,12 @@ func _refresh_ui() -> void:
 	_title_label.text = _title
 	_subtitle_label.text = _subtitle
 	_subtitle_label.visible = not _subtitle.is_empty()
-	custom_minimum_size.y = HEIGHT_TWO_LINE if _subtitle_label.visible else HEIGHT_ONE_LINE
+	if _dense:
+		custom_minimum_size.y = HEIGHT_DENSE
+	elif _subtitle_label.visible:
+		custom_minimum_size.y = HEIGHT_TWO_LINE
+	else:
+		custom_minimum_size.y = HEIGHT_ONE_LINE
 	CopilotMd3Tokens.apply_text(_title_label, "body-large")
 	CopilotMd3Tokens.apply_text(_subtitle_label, "body-medium")
 	if _scheme != null:
@@ -133,6 +150,9 @@ func _apply() -> void:
 		fill_color = _scheme.color("secondary-container")
 		content_role = "on-secondary-container"
 	var content_color := _scheme.color(content_role)
+	var title_color := content_color
+	if not _content_role.is_empty():
+		title_color = _scheme.color(_content_role)
 	var disabled_content := _scheme.disabled_content("on-surface")
 
 	add_theme_stylebox_override("normal", _row_box(fill_color, radius))
@@ -144,7 +164,7 @@ func _apply() -> void:
 	add_theme_color_override("font_disabled_color", disabled_content)
 
 	if _title_label != null:
-		_title_label.add_theme_color_override("font_color", content_color)
+		_title_label.add_theme_color_override("font_color", title_color)
 		_subtitle_label.add_theme_color_override("font_color", content_color if _selected else _scheme.color("on-surface-variant"))
 	if _icon_rect != null and _icon_rect.texture != null:
 		_icon_rect.modulate = _scheme.color(content_role) if _selected else _scheme.color("on-surface-variant")
