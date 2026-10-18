@@ -3,14 +3,17 @@ class_name CopilotMd3Dialog
 extends AcceptDialog
 # Material 3 dialog base: a borderless embedded window with a single
 # surface-container-high panel (extra-large 28 corner, elevation 3), an in-panel
-# headline-small title, 24px body padding, Roboto type and restyled actions:
-# the OK button becomes an M3 filled (or danger) button, an optional cancel
-# button becomes a text button. Callers add content through body().
+# title-large title, 20px body padding (the dialog density tier, DESIGN.md
+# section 3.8), Roboto type, and end-aligned compact actions: the OK button
+# becomes an M3 filled (or danger) button, an optional cancel button becomes a
+# text button. Callers add content through body() and size the window with
+# set_preferred_size().
 
 const RADIUS := 28
-const PAD := 24
-const ACTION_HEIGHT := 40
-const ACTION_MIN_WIDTH := 72
+const PAD := 20
+const ACTION_HEIGHT := 32
+const ACTION_MIN_WIDTH := 64
+# State layer opacities per MATERIAL3.md section 8.1.
 const HOVER_OPACITY := 0.08
 const PRESSED_OPACITY := 0.10
 const EDGE_MARGIN := 8
@@ -21,6 +24,7 @@ var _title_label: Label = null
 var _cancel_button: Button = null
 var _ok_variant := CopilotMd3Button.VARIANT_FILLED
 var _ok_label := "Close"
+var _preferred_size := Vector2i.ZERO
 
 func configure(scheme: CopilotMd3Scheme, title_text: String, ok_text: String = "Close", cancel_text: String = "") -> void:
 	_scheme = scheme
@@ -48,6 +52,13 @@ func body() -> VBoxContainer:
 func set_ok_variant(button_variant: String) -> void:
 	_ok_variant = button_variant
 	_apply()
+
+func set_preferred_size(value: Vector2i) -> void:
+	# The window is never larger than the editor area minus the edge margin;
+	# a zero axis falls back to the content minimum.
+	_preferred_size = value
+	if is_inside_tree():
+		_clamp_to_editor()
 
 func sync_scheme() -> bool:
 	# Re-resolves the editor theme mode (light/dark can change while a dialog
@@ -100,7 +111,7 @@ func _build_body() -> void:
 	_body = VBoxContainer.new()
 	_body.name = "md3_body"
 	_body.custom_minimum_size.x = 400
-	_body.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("l"))
+	_body.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("m"))
 	add_child(_body)
 	_title_label = Label.new()
 	_title_label.name = "md3_title"
@@ -117,14 +128,36 @@ func _apply() -> void:
 	panel.content_margin_bottom = PAD
 	panel.content_margin_top = PAD
 	add_theme_stylebox_override("panel", panel)
+	# Action bar: the engine forces its own minimum on every action button on
+	# each layout pass, so the compact tier has to go through the theme
+	# constants that drive that minimum.
+	add_theme_constant_override("buttons_min_height", ACTION_HEIGHT)
+	add_theme_constant_override("buttons_min_width", ACTION_MIN_WIDTH)
+	add_theme_constant_override("buttons_separation", CopilotMd3Tokens.spacing("s"))
 	if _title_label != null:
 		_title_label.text = title
 		_title_label.visible = not title.is_empty()
 		_title_label.add_theme_color_override("font_color", _scheme.color("on-surface"))
-		CopilotMd3Tokens.apply_text(_title_label, "headline-small")
+		CopilotMd3Tokens.apply_text(_title_label, "title-large")
 	ok_button_text = _ok_label
 	_style_action(get_ok_button(), _ok_variant)
 	_style_action(_cancel_button, CopilotMd3Button.VARIANT_TEXT)
+	_align_actions_end()
+
+func _align_actions_end() -> void:
+	# AcceptDialog sandwiches the OK (and Cancel) buttons between expanding
+	# spacers, which centers them; M3 aligns dialog actions to the end. The
+	# spacers stay in place for the engine's bookkeeping (remove_button looks
+	# them up), but lose their expand flag and the bar aligns to the end.
+	var bar := get_ok_button().get_parent() as BoxContainer
+	if bar == null:
+		return
+	bar.alignment = BoxContainer.ALIGNMENT_END
+	for child in bar.get_children():
+		var control := child as Control
+		if control == null or control is Button:
+			continue
+		control.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
 func _clamp_to_editor() -> void:
 	# The editor area can be smaller than the dialog's own content minimum (a
@@ -151,11 +184,22 @@ func _clamp_to_editor() -> void:
 	# minimum is pulled down first when the screen cannot fit it.
 	min_size = Vector2i(mini(min_size.x, limit.x), mini(min_size.y, limit.y))
 	max_size = limit
+	if _preferred_size.x > 0 or _preferred_size.y > 0:
+		var wanted := get_size()
+		if _preferred_size.x > 0:
+			wanted.x = _preferred_size.x
+		if _preferred_size.y > 0:
+			wanted.y = _preferred_size.y
+		size = Vector2i(mini(wanted.x, limit.x), mini(wanted.y, limit.y))
 	# The engine centers embedded windows on the whole viewport and pins a
 	# window taller than the editor area to the top, which cuts the action bar
-	# off below the edge. Nudge the window back inside the editor rect so the
-	# title and the Close button always stay reachable.
+	# off below the edge. Center inside the editor rect when the window fits
+	# and nudge it back inside otherwise, so the title and the Close button
+	# always stay reachable.
 	var origin := Vector2i(base_rect.position)
+	if get_size().x <= limit.x and get_size().y <= limit.y:
+		position = origin + (limit - get_size()) / 2
+		return
 	var max_position := origin + limit - get_size()
 	max_position.x = maxi(max_position.x, origin.x)
 	max_position.y = maxi(max_position.y, origin.y)
@@ -191,7 +235,7 @@ func _style_action(button: Button, variant: String) -> void:
 	if not fill_role.is_empty():
 		disabled_fill = _scheme.alpha("on-surface", CopilotMd3Tokens.DISABLED_CONTAINER_OPACITY)
 	button.custom_minimum_size = Vector2(ACTION_MIN_WIDTH, ACTION_HEIGHT)
-	button.add_theme_constant_override("icon_max_width", 18)
+	button.add_theme_constant_override("icon_max_width", 16)
 	button.add_theme_constant_override("h_separation", CopilotMd3Tokens.spacing("s"))
 	CopilotMd3Tokens.apply_text(button, "label-large")
 	button.add_theme_stylebox_override("normal", _action_box(fill_color, radius))
@@ -209,8 +253,8 @@ func _action_box(fill_color: Color, radius: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill_color
 	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = CopilotMd3Tokens.spacing("l")
-	sb.content_margin_right = CopilotMd3Tokens.spacing("l")
+	sb.content_margin_left = CopilotMd3Tokens.spacing("m")
+	sb.content_margin_right = CopilotMd3Tokens.spacing("m")
 	sb.content_margin_top = CopilotMd3Tokens.spacing("xs")
 	sb.content_margin_bottom = CopilotMd3Tokens.spacing("xs")
 	return sb

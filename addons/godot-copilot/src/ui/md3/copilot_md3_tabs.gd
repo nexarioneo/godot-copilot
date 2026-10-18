@@ -11,6 +11,7 @@ extends TabContainer
 const INDICATOR_HEIGHT := 3.0
 
 var _scheme: CopilotMd3Scheme = null
+var _compact := false
 var _indicator_x := -1.0
 var _indicator_width := 0.0
 var _indicator_tween: Tween = null
@@ -22,6 +23,12 @@ func configure(scheme: CopilotMd3Scheme) -> void:
 
 func set_scheme(scheme: CopilotMd3Scheme) -> void:
 	_scheme = scheme
+	_apply()
+
+func set_compact(compact: bool) -> void:
+	# Dialog density: a shorter bar (35px instead of 43px) with the same
+	# indicator, so tabs do not dominate a dialog header.
+	_compact = compact
 	_apply()
 
 func _ready() -> void:
@@ -67,7 +74,7 @@ func _apply() -> void:
 	add_theme_stylebox_override("tab_disabled", disabled)
 	add_theme_stylebox_override("tabbar_background", _tab_box(transparent))
 	var panel := StyleBoxEmpty.new()
-	panel.content_margin_top = CopilotMd3Tokens.spacing("s")
+	panel.content_margin_top = CopilotMd3Tokens.spacing("xs") if _compact else CopilotMd3Tokens.spacing("s")
 	add_theme_stylebox_override("panel", panel)
 	queue_redraw()
 
@@ -172,6 +179,10 @@ func _tab_box(fill_color: Color) -> StyleBoxFlat:
 	box.bg_color = fill_color
 	box.content_margin_left = CopilotMd3Tokens.spacing("l")
 	box.content_margin_right = CopilotMd3Tokens.spacing("l")
-	box.content_margin_top = CopilotMd3Tokens.spacing("m")
-	box.content_margin_bottom = CopilotMd3Tokens.spacing("s") + int(INDICATOR_HEIGHT)
+	if _compact:
+		box.content_margin_top = CopilotMd3Tokens.spacing("s")
+		box.content_margin_bottom = CopilotMd3Tokens.spacing("xs") + int(INDICATOR_HEIGHT)
+	else:
+		box.content_margin_top = CopilotMd3Tokens.spacing("m")
+		box.content_margin_bottom = CopilotMd3Tokens.spacing("s") + int(INDICATOR_HEIGHT)
 	return box

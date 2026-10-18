@@ -12,8 +12,6 @@ const SIZE_COMPACT := 32
 const BUTTON_ICON_SIZE := 24
 const ICON_SIZE_COMPACT := 20
 
-var _compact := false
-
 func _ready() -> void:
 	super._ready()
 	_connect_toggle()
@@ -23,6 +21,7 @@ func set_toggle(toggle: bool) -> void:
 	_apply()
 
 func set_compact(compact: bool) -> void:
+	# Compact form (32/20): the dialog density tier. Inherited `_compact`.
 	_compact = compact
 	_apply()
 

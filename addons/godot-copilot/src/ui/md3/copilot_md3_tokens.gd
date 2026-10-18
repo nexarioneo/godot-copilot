@@ -246,12 +246,20 @@ const SPRING := {
 }
 
 # --- Spacing and target sizes ------------------------------------------------
-# Spacing follows a 4dp rhythm. Targets: dock-focused controls vs
-# dialog-accurate controls.
+# Spacing follows a 4dp rhythm. Two densities: dock controls and the denser
+# dialog controls, which sit inside a window that competes with the editor
+# area (see DESIGN.md section 3.8).
 
 const SPACING := {"xs": 4, "s": 8, "m": 12, "l": 16, "xl": 24, "xxl": 32}
+# Dock tier baseline control size; components hardcode their own baselines.
 const TARGET_DOCK := 40
-const TARGET_DIALOG := 48
+# Dialog density: buttons follow the M3 Expressive XS size (32), text fields
+# the dense variant (40), segmented buttons the density step (36). The dock
+# keeps the baseline sizes above.
+const TARGET_DIALOG_BUTTON := 32
+const TARGET_DIALOG_FIELD := 40
+const TARGET_DIALOG_SEGMENTED := 36
+const DIALOG_PAD := 20
 
 # --- Fonts -------------------------------------------------------------------
 

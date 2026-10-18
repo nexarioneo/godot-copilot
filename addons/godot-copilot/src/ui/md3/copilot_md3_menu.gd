@@ -136,15 +136,51 @@ func popup_on(anchor: Control) -> void:
 	_update_scroll_cap()
 	var needed := _root.get_combined_minimum_size() + Vector2(float(PAD * 2), float(PAD * 2))
 	var target := Vector2i(maxi(int(ceilf(needed.x)), MIN_WIDTH), int(ceilf(needed.y)))
+	# The popup rect is expressed in the coordinate space of the viewport that
+	# embeds this window (the editor area, or the dialog when its own viewport
+	# embeds subwindows), while an anchor inside a dialog reports positions in
+	# the dialog's canvas space. Translate the anchor by the window offsets up
+	# to the embedder so the menu lands under its button.
 	var anchor_pos := anchor.get_global_position()
-	var pos := anchor_pos + Vector2(0.0, anchor.size.y + 4.0)
+	var embedder := _embedder_of(anchor)
+	anchor_pos += _window_offset_to(anchor.get_window(), embedder)
 	var bounds := Rect2(Vector2.ZERO, anchor.get_viewport().get_visible_rect().size)
+	if embedder != null:
+		bounds = embedder.get_visible_rect()
+	elif not is_embedded():
+		# Native popups use screen coordinates; clamp against the usable area.
+		bounds = Rect2(DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen(get_window_id())))
+	var pos := anchor_pos + Vector2(0.0, anchor.size.y + 4.0)
 	pos.x = clampf(pos.x, bounds.position.x + 4.0, maxf(bounds.position.x + 4.0, bounds.end.x - float(target.x) - 4.0))
 	if pos.y + float(target.y) > bounds.end.y - 4.0:
 		pos.y = anchor_pos.y - float(target.y) - 4.0
 	pos.y = clampf(pos.y, bounds.position.y + 4.0, maxf(bounds.position.y + 4.0, bounds.end.y - float(target.y) - 4.0))
 	popup(Rect2i(Vector2i(pos), target))
 	_focus_first.call_deferred()
+
+static func _embedder_of(node: Node) -> Viewport:
+	# Mirrors Window::get_embedder(): the innermost ancestor viewport that
+	# embeds subwindows owns the coordinate space of an embedded popup.
+	var viewport := node.get_viewport()
+	while viewport != null:
+		if viewport.is_embedding_subwindows():
+			return viewport
+		var parent := viewport.get_parent()
+		viewport = parent.get_viewport() if parent != null else null
+	return null
+
+static func _window_offset_to(window: Window, embedder: Viewport) -> Vector2:
+	# Sums the positions of the window chain below the embedder; each embedded
+	# window position is expressed in the embedder's own space.
+	var offset := Vector2.ZERO
+	var node: Node = window
+	while node != null and (embedder == null or node != embedder):
+		var current := node as Window
+		if current == null:
+			break
+		offset += Vector2(current.position)
+		node = current.get_parent()
+	return offset
 
 func _build_ui() -> void:
 	if _root != null:

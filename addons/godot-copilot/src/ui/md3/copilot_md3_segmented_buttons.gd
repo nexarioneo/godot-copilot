@@ -3,19 +3,23 @@ class_name CopilotMd3SegmentedButtons
 extends PanelContainer
 # Material 3 segmented button: an outlined group (full round shape, 40 high)
 # split by 1px dividers; the selected segment fills with secondary-container.
+# The compact form is 36 high with 12px padding (dialog density tier).
 # Segments are plain Buttons styled from the scheme; selection is owned by the
 # component and reported through item_selected.
 
 signal item_selected(index: int)
 
 const HEIGHT := 40
+const HEIGHT_COMPACT := 36
 const PAD_H := 16
+const PAD_H_COMPACT := 12
 const HOVER_OPACITY := 0.08
 const PRESSED_OPACITY := 0.10
 
 var _scheme: CopilotMd3Scheme = null
 var _items: PackedStringArray = PackedStringArray()
 var _selected := 0
+var _compact := false
 var _row: HBoxContainer = null
 var _buttons: Array[Button] = []
 var _dividers: Array[CopilotMd3Divider] = []
@@ -35,6 +39,18 @@ func set_scheme(scheme: CopilotMd3Scheme) -> void:
 	for divider in _dividers:
 		divider.set_scheme(scheme)
 	_apply()
+
+func set_compact(compact: bool) -> void:
+	# Compact form (36/12) for the dialog density tier.
+	_compact = compact
+	_rebuild_segments()
+	_apply()
+
+func _height() -> int:
+	return HEIGHT_COMPACT if _compact else HEIGHT
+
+func _pad_h() -> int:
+	return PAD_H_COMPACT if _compact else PAD_H
 
 func set_items(items: PackedStringArray, selected: int = 0) -> void:
 	_items = items
@@ -91,7 +107,7 @@ func _rebuild_segments() -> void:
 		segment.text = _items[i]
 		segment.focus_mode = Control.FOCUS_ALL
 		segment.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		segment.custom_minimum_size = Vector2(0, HEIGHT)
+		segment.custom_minimum_size = Vector2(0, _height())
 		segment.add_theme_constant_override("h_separation", CopilotMd3Tokens.spacing("s"))
 		segment.add_theme_constant_override("icon_max_width", 18)
 		segment.pressed.connect(_on_segment_pressed.bind(i))
@@ -121,8 +137,8 @@ func _on_segment_pressed(index: int) -> void:
 func _apply() -> void:
 	if _scheme == null:
 		return
-	custom_minimum_size.y = HEIGHT
-	var panel := _scheme.box("", HEIGHT / 2, "outline", 1)
+	custom_minimum_size.y = _height()
+	var panel := _scheme.box("", _height() / 2, "outline", 1)
 	add_theme_stylebox_override("panel", panel)
 	_update_segment_styles()
 
@@ -164,8 +180,8 @@ func _update_segment_styles() -> void:
 		divider.visible = _selected != i and _selected != i + 1
 
 func _make_boxes(index: int, count: int) -> Dictionary:
-	var radius_left := HEIGHT / 2 if index == 0 else 0
-	var radius_right := HEIGHT / 2 if index == count - 1 else 0
+	var radius_left := _height() / 2 if index == 0 else 0
+	var radius_right := _height() / 2 if index == count - 1 else 0
 	return {
 		"normal": _segment_box(radius_left, radius_right),
 		"hover": _segment_box(radius_left, radius_right),
@@ -181,8 +197,8 @@ func _segment_box(radius_left: int, radius_right: int) -> StyleBoxFlat:
 	sb.corner_radius_bottom_left = radius_left
 	sb.corner_radius_top_right = radius_right
 	sb.corner_radius_bottom_right = radius_right
-	sb.content_margin_left = PAD_H
-	sb.content_margin_right = PAD_H
+	sb.content_margin_left = _pad_h()
+	sb.content_margin_right = _pad_h()
 	sb.content_margin_top = CopilotMd3Tokens.spacing("xs")
 	sb.content_margin_bottom = CopilotMd3Tokens.spacing("xs")
 	return sb

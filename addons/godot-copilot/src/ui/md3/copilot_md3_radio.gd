@@ -3,7 +3,8 @@ class_name CopilotMd3Radio
 extends Button
 # Material 3 radio option row: 20px radio circle + title (body-large) and
 # optional supporting text (body-small) in a clickable row. Exclusivity is
-# managed by the caller through set_selected().
+# managed by the caller through set_selected(). The dense form is used inside
+# dialogs.
 
 const CIRCLE := 20.0
 const DOT := 10.0
@@ -12,6 +13,11 @@ const PAD_V := 8
 const GAP := 16
 const HEIGHT_ONE_LINE := 48
 const HEIGHT_TWO_LINE := 64
+# Dense form (dialog density tier, DESIGN.md section 3.8).
+const PAD_V_DENSE := 4
+const GAP_DENSE := 12
+const HEIGHT_DENSE_ONE_LINE := 40
+const HEIGHT_DENSE_TWO_LINE := 56
 const HOVER_OPACITY := 0.08
 const PRESSED_OPACITY := 0.10
 
@@ -19,6 +25,7 @@ var _scheme: CopilotMd3Scheme = null
 var _title := ""
 var _supporting := ""
 var _selected := false
+var _dense := false
 var _hovered := false
 var _held := false
 var _touch_device := false
@@ -45,6 +52,14 @@ func set_selected(selected: bool) -> void:
 	_selected = selected
 	_apply()
 	queue_redraw()
+
+func set_dense(dense: bool) -> void:
+	_dense = dense
+	if _text_column != null:
+		_text_column.offset_top = _pad_v()
+		_text_column.offset_bottom = -_pad_v()
+		_text_column.offset_left = PAD_H + int(CIRCLE) + _gap()
+	_refresh_ui()
 
 func is_selected() -> bool:
 	return _selected
@@ -85,10 +100,10 @@ func _build_ui() -> void:
 	_text_column = VBoxContainer.new()
 	_text_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_text_column.offset_left = PAD_H + int(CIRCLE) + GAP
+	_text_column.offset_left = PAD_H + int(CIRCLE) + _gap()
 	_text_column.offset_right = -PAD_H
-	_text_column.offset_top = PAD_V
-	_text_column.offset_bottom = -PAD_V
+	_text_column.offset_top = _pad_v()
+	_text_column.offset_bottom = -_pad_v()
 	_text_column.alignment = BoxContainer.ALIGNMENT_CENTER
 	_text_column.add_theme_constant_override("separation", 0)
 	add_child(_text_column)
@@ -103,13 +118,22 @@ func _build_ui() -> void:
 	_supporting_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_text_column.add_child(_supporting_label)
 
+func _pad_v() -> int:
+	return PAD_V_DENSE if _dense else PAD_V
+
+func _gap() -> int:
+	return GAP_DENSE if _dense else GAP
+
 func _refresh_ui() -> void:
 	if _title_label == null:
 		return
 	_title_label.text = _title
 	_supporting_label.text = _supporting
 	_supporting_label.visible = not _supporting.is_empty()
-	custom_minimum_size.y = HEIGHT_TWO_LINE if _supporting_label.visible else HEIGHT_ONE_LINE
+	if _supporting_label.visible:
+		custom_minimum_size.y = HEIGHT_DENSE_TWO_LINE if _dense else HEIGHT_TWO_LINE
+	else:
+		custom_minimum_size.y = HEIGHT_DENSE_ONE_LINE if _dense else HEIGHT_ONE_LINE
 	CopilotMd3Tokens.apply_text(_title_label, "body-large")
 	CopilotMd3Tokens.apply_text(_supporting_label, "body-small")
 

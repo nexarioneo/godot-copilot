@@ -2,8 +2,9 @@
 class_name CopilotMd3Button
 extends Button
 # Material 3 button. Variants: elevated, filled (default), tonal, outlined,
-# text, plus a plugin-only danger variant (error roles). Height 40, fully
-# rounded, label-large text, optional 18px leading icon.
+# text, plus a plugin-only danger variant (error roles). Baseline height 40,
+# fully rounded, label-large text, optional 18px leading icon. The compact
+# form (32/12 padding) is the XS size used by the dialog density tier.
 
 const VARIANT_ELEVATED := "elevated"
 const VARIANT_FILLED := "filled"
@@ -15,12 +16,16 @@ const VARIANT_DANGER := "danger"
 const HEIGHT := 40
 const ICON_SIZE := 18
 const PAD_H := 16
+const HEIGHT_COMPACT := 32
+const ICON_SIZE_COMPACT := 16
+const PAD_H_COMPACT := 12
 # State layer opacities per MATERIAL3.md section 8.1.
 const HOVER_OPACITY := 0.08
 const PRESSED_OPACITY := 0.10
 
 var variant: String = VARIANT_FILLED
 var _scheme: CopilotMd3Scheme = null
+var _compact := false
 
 func configure(scheme: CopilotMd3Scheme, button_variant: String = VARIANT_FILLED, label: String = "", icon_name: String = "", editor_fallback: String = "") -> void:
 	_scheme = scheme
@@ -38,6 +43,14 @@ func set_variant(button_variant: String) -> void:
 	variant = button_variant
 	_apply()
 
+func set_compact(compact: bool) -> void:
+	# Dialog density: 32px height, 12px side padding, 16px icon.
+	_compact = compact
+	_apply()
+
+func is_compact() -> bool:
+	return _compact
+
 func set_icon(symbol_name: String, editor_fallback: String = "") -> void:
 	CopilotMd3Icons.apply_to_button(self, symbol_name, editor_fallback)
 
@@ -49,9 +62,11 @@ func _ready() -> void:
 func _apply() -> void:
 	if _scheme == null:
 		return
-	custom_minimum_size.y = HEIGHT
+	var height := HEIGHT_COMPACT if _compact else HEIGHT
+	var icon_size := ICON_SIZE_COMPACT if _compact else ICON_SIZE
+	custom_minimum_size.y = height
 	CopilotMd3Tokens.apply_text(self, "label-large")
-	add_theme_constant_override("icon_max_width", ICON_SIZE)
+	add_theme_constant_override("icon_max_width", icon_size)
 	add_theme_constant_override("h_separation", CopilotMd3Tokens.spacing("s"))
 
 	var fill_role := ""
@@ -87,7 +102,7 @@ func _apply() -> void:
 			border_role = ""
 			content_role = "on-primary"
 
-	var radius := CopilotMd3Tokens.corner_radius("full", Vector2(HEIGHT, HEIGHT))
+	var radius := CopilotMd3Tokens.corner_radius("full", Vector2(height, height))
 	var fill_color := Color(0.0, 0.0, 0.0, 0.0)
 	if not fill_role.is_empty():
 		fill_color = _scheme.color(fill_role)
@@ -125,8 +140,8 @@ func _build_box(fill_color: Color, radius: int, border_color: Color, border_widt
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill_color
 	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = PAD_H
-	sb.content_margin_right = PAD_H
+	sb.content_margin_left = PAD_H_COMPACT if _compact else PAD_H
+	sb.content_margin_right = PAD_H_COMPACT if _compact else PAD_H
 	sb.content_margin_top = CopilotMd3Tokens.spacing("xs")
 	sb.content_margin_bottom = CopilotMd3Tokens.spacing("xs")
 	if border_width > 0 and border_color.a > 0.0:

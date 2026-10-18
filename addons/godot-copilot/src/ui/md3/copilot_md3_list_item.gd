@@ -3,14 +3,19 @@ class_name CopilotMd3ListItem
 extends Button
 # Material 3 list item: optional 24px leading icon, title (body-large) with
 # optional supporting text (body-medium), and a trailing widget slot. One-line
-# height 56, two-line 72. Selected rows use secondary-container (plugin
-# selection convention). Trailing controls keep their own input handling.
+# height 56, two-line 72; the dense form is 48 (one line) or 64 (two lines)
+# with 12/6 padding, used inside dialogs and menus. Selected rows use
+# secondary-container (plugin selection convention). Trailing controls keep
+# their own input handling.
 
 const HEIGHT_ONE_LINE := 56
 const HEIGHT_TWO_LINE := 72
 const HEIGHT_DENSE := 48
+const HEIGHT_DENSE_TWO_LINE := 64
 const PAD_H := 16
 const PAD_V := 8
+const PAD_H_DENSE := 12
+const PAD_V_DENSE := 6
 const HOVER_OPACITY := 0.08
 const PRESSED_OPACITY := 0.10
 
@@ -114,10 +119,7 @@ func _build_ui() -> void:
 	_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("l"))
 	add_child(_row)
 	_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_row.offset_left = PAD_H
-	_row.offset_right = -PAD_H
-	_row.offset_top = PAD_V
-	_row.offset_bottom = -PAD_V
+	_apply_row_padding()
 
 	_icon_rect = TextureRect.new()
 	_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -156,13 +158,14 @@ func _refresh_ui() -> void:
 	_subtitle_label.text = _subtitle
 	_subtitle_label.visible = not _subtitle.is_empty()
 	if _dense:
-		custom_minimum_size.y = HEIGHT_DENSE
+		custom_minimum_size.y = HEIGHT_DENSE_TWO_LINE if _subtitle_label.visible else HEIGHT_DENSE
 	elif _subtitle_label.visible:
 		custom_minimum_size.y = HEIGHT_TWO_LINE
 	else:
 		custom_minimum_size.y = HEIGHT_ONE_LINE
 	CopilotMd3Tokens.apply_text(_title_label, "body-large")
 	CopilotMd3Tokens.apply_text(_subtitle_label, _subtitle_style)
+	_apply_row_padding()
 	var mono := CopilotMd3Tokens.font_mono()
 	if mono != null:
 		if _title_mono:
@@ -177,6 +180,17 @@ func _refresh_ui() -> void:
 		texture = get_theme_icon(_editor_fallback, "EditorIcons")
 	_icon_rect.texture = texture
 	_icon_rect.visible = texture != null and _leading == null
+
+func _apply_row_padding() -> void:
+	if _row == null:
+		return
+	var pad_h := PAD_H_DENSE if _dense else PAD_H
+	var pad_v := PAD_V_DENSE if _dense else PAD_V
+	_row.offset_left = pad_h
+	_row.offset_right = -pad_h
+	_row.offset_top = pad_v
+	_row.offset_bottom = -pad_v
+	_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("m") if _dense else CopilotMd3Tokens.spacing("l"))
 
 func _apply() -> void:
 	if _scheme == null:
@@ -213,10 +227,10 @@ func _row_box(fill_color: Color, radius: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill_color
 	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = PAD_H
-	sb.content_margin_right = PAD_H
-	sb.content_margin_top = PAD_V
-	sb.content_margin_bottom = PAD_V
+	sb.content_margin_left = PAD_H_DENSE if _dense else PAD_H
+	sb.content_margin_right = PAD_H_DENSE if _dense else PAD_H
+	sb.content_margin_top = PAD_V_DENSE if _dense else PAD_V
+	sb.content_margin_bottom = PAD_V_DENSE if _dense else PAD_V
 	return sb
 
 func _focus_box(radius: int) -> StyleBoxFlat:
