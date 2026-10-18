@@ -513,4 +513,3 @@ static func state_role(state: String) -> String:
 			return "error"
 	return "on-surface-variant"
 
-# --- Session menu styling moved to CopilotMd3Menu ---
