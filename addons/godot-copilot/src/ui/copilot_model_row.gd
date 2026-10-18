@@ -1,63 +1,44 @@
 @tool
 class_name CopilotModelRow
-extends PanelContainer
-# Provider model row: active toggle + name + badges + delete.
+extends CopilotMd3ListItem
+# Provider model row built on the M3 list item: leading switch (enabled),
+# title = model id (mono), supporting = display name plus capability hints,
+# trailing delete. Disabled rows are dimmed.
 
 signal active_toggled(model_key: String, active: bool)
 signal remove_requested(model_key: String)
 
 var model_key := ""
 
-var _active_check: CheckBox
-var _key_label: Label
-var _name_label: Label
+var _active_switch: CopilotMd3Switch = null
 
 func _ready() -> void:
-	_build_ui()
+	super._ready()
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
-func setup(p_model_key: String, display_name: String, disabled: bool, vision: bool, reasoning: bool) -> void:
-	_build_ui()
+func setup(scheme: CopilotMd3Scheme, p_model_key: String, display_name: String, disabled: bool, vision: bool, reasoning: bool) -> void:
 	model_key = p_model_key
-	_key_label.text = p_model_key
-	var badges := PackedStringArray()
+	var supporting_parts: Array[String] = []
+	if not display_name.is_empty():
+		supporting_parts.append(display_name)
+	var caps: Array[String] = []
 	if vision:
-		badges.append("vision")
+		caps.append("vision")
 	if reasoning:
-		badges.append("reasoning")
-	var suffix := "" if badges.is_empty() else "  [" + ", ".join(badges) + "]"
-	_name_label.text = display_name + suffix
-	_active_check.set_pressed_no_signal(not disabled)
-	modulate = Color(1, 1, 1, 0.55) if disabled else Color(1, 1, 1, 1)
-
-func _build_ui() -> void:
-	if _active_check != null:
-		return
-	add_theme_stylebox_override("panel", CopilotTheme.card_style(self))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	add_child(row)
-
-	_active_check = CheckBox.new()
-	_active_check.tooltip_text = "Enable/disable this model in the model picker"
-	_active_check.toggled.connect(func(pressed: bool) -> void: active_toggled.emit(model_key, pressed))
-	row.add_child(_active_check)
-
-	var text_box := VBoxContainer.new()
-	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_box.add_theme_constant_override("separation", 0)
-	row.add_child(text_box)
-	_key_label = Label.new()
-	_key_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	text_box.add_child(_key_label)
-	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", 11)
-	_name_label.add_theme_color_override("font_color", CopilotTheme.font_placeholder_color(self))
-	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	text_box.add_child(_name_label)
-
-	var remove_button := Button.new()
-	remove_button.focus_mode = Control.FOCUS_NONE
+		caps.append("reasoning")
+	if not caps.is_empty():
+		supporting_parts.append("[" + ", ".join(caps) + "]")
+	configure(scheme, p_model_key, " ".join(supporting_parts))
+	set_title_mono(true)
+	_active_switch = CopilotMd3Switch.new()
+	_active_switch.configure(scheme, not disabled)
+	_active_switch.tooltip_text = "Enable/disable this model in the model picker"
+	_active_switch.toggled.connect(func(pressed: bool) -> void: active_toggled.emit(model_key, pressed))
+	set_leading(_active_switch)
+	var remove_button := CopilotMd3IconButton.new()
+	remove_button.configure(scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", "delete")
+	remove_button.set_compact(true)
 	remove_button.tooltip_text = "Remove the model from the list"
-	CopilotTheme.apply_icon(remove_button, PackedStringArray(["Remove"]), "✕")
 	remove_button.pressed.connect(func() -> void: remove_requested.emit(model_key))
-	row.add_child(remove_button)
+	add_trailing(remove_button)
+	modulate = Color(1, 1, 1, 0.55) if disabled else Color(1, 1, 1, 1)

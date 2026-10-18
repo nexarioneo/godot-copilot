@@ -22,6 +22,10 @@ var _editor_fallback := ""
 var _selected := false
 var _dense := false
 var _content_role := ""
+var _leading: Control = null
+var _subtitle_style := "body-medium"
+var _title_mono := false
+var _subtitle_mono := false
 
 var _row: HBoxContainer = null
 var _icon_rect: TextureRect = null
@@ -56,6 +60,36 @@ func set_dense(dense: bool) -> void:
 func set_content_role(role: String) -> void:
 	_content_role = role
 	_apply()
+
+func set_title(title: String) -> void:
+	_title = title
+	_refresh_ui()
+
+func set_subtitle(subtitle: String) -> void:
+	_subtitle = subtitle
+	_refresh_ui()
+
+func set_subtitle_style(style: String) -> void:
+	_subtitle_style = style
+	_refresh_ui()
+
+func set_title_mono(mono: bool) -> void:
+	_title_mono = mono
+	_refresh_ui()
+
+func set_subtitle_mono(mono: bool) -> void:
+	_subtitle_mono = mono
+	_refresh_ui()
+
+func set_leading(control: Control) -> void:
+	# Replaces the leading icon slot with a custom control (switch, badge, ...).
+	_build_ui()
+	if _leading != null and is_instance_valid(_leading):
+		_leading.queue_free()
+	_leading = control
+	_row.add_child(control)
+	_row.move_child(control, 0)
+	_icon_rect.visible = false
 
 func add_trailing(control: Control) -> void:
 	_build_ui()
@@ -128,7 +162,13 @@ func _refresh_ui() -> void:
 	else:
 		custom_minimum_size.y = HEIGHT_ONE_LINE
 	CopilotMd3Tokens.apply_text(_title_label, "body-large")
-	CopilotMd3Tokens.apply_text(_subtitle_label, "body-medium")
+	CopilotMd3Tokens.apply_text(_subtitle_label, _subtitle_style)
+	var mono := CopilotMd3Tokens.font_mono()
+	if mono != null:
+		if _title_mono:
+			_title_label.add_theme_font_override("font", mono)
+		if _subtitle_mono:
+			_subtitle_label.add_theme_font_override("font", mono)
 	if _scheme != null:
 		_title_label.add_theme_color_override("font_color", _scheme.color("on-surface"))
 		_subtitle_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
@@ -136,7 +176,7 @@ func _refresh_ui() -> void:
 	if texture == null and not _editor_fallback.is_empty() and has_theme_icon(_editor_fallback, "EditorIcons"):
 		texture = get_theme_icon(_editor_fallback, "EditorIcons")
 	_icon_rect.texture = texture
-	_icon_rect.visible = texture != null
+	_icon_rect.visible = texture != null and _leading == null
 
 func _apply() -> void:
 	if _scheme == null:

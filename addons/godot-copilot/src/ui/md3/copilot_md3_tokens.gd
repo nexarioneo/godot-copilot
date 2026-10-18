@@ -263,6 +263,23 @@ static func font_regular() -> Font:
 static func font_medium() -> Font:
 	return _load_font(CopilotPaths.FONTS_MEDIUM)
 
+static var _mono_font_cache: Font = null
+
+static func font_mono() -> Font:
+	# The editor's configured code font. Deliberately no EditorFonts theme
+	# lookup: EditorTheme warns when its mono_font entry has an invalid Ref
+	# during startup, so querying the theme would spam warnings.
+	if _mono_font_cache != null:
+		return _mono_font_cache
+	var settings := EditorInterface.get_editor_settings()
+	if settings != null:
+		var configured: Variant = settings.get_setting("interface/editor/code_font")
+		if configured is Font:
+			_mono_font_cache = configured as Font
+		elif configured is String and not (configured as String).is_empty() and ResourceLoader.exists(configured as String):
+			_mono_font_cache = load(configured as String) as Font
+	return _mono_font_cache
+
 static func font_for_weight(weight: int) -> Font:
 	var path: String = CopilotPaths.FONTS_MEDIUM if weight >= 500 else CopilotPaths.FONTS_REGULAR
 	return _load_font(path)

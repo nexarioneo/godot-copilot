@@ -8,6 +8,7 @@ const TONES := {
 	"error": ["error", "on-error"],
 	"primary": ["primary", "on-primary"],
 	"secondary": ["secondary", "on-secondary"],
+	"neutral": ["surface-container-highest", "on-surface-variant"],
 	"success": ["status-success", "on-status-success"],
 	"warning": ["status-warning", "on-status-warning"],
 	"info": ["status-info", "on-status-info"],

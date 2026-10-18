@@ -40,9 +40,6 @@ func set_ok_variant(button_variant: String) -> void:
 	_ok_variant = button_variant
 	_apply()
 
-func set_hide_on_ok(enabled: bool) -> void:
-	dialog_hide_on_ok = enabled
-
 func _ready() -> void:
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)

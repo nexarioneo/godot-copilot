@@ -8,7 +8,11 @@ extends CopilotMd3Button
 const VARIANT_STANDARD := "standard"
 
 const SIZE := 40
+const SIZE_COMPACT := 32
 const BUTTON_ICON_SIZE := 24
+const ICON_SIZE_COMPACT := 20
+
+var _compact := false
 
 func _ready() -> void:
 	super._ready()
@@ -18,11 +22,17 @@ func set_toggle(toggle: bool) -> void:
 	toggle_mode = toggle
 	_apply()
 
+func set_compact(compact: bool) -> void:
+	_compact = compact
+	_apply()
+
 func _apply() -> void:
 	if _scheme == null:
 		return
-	custom_minimum_size = Vector2(SIZE, SIZE)
-	add_theme_constant_override("icon_max_width", BUTTON_ICON_SIZE)
+	var target_size := SIZE_COMPACT if _compact else SIZE
+	var icon_size := ICON_SIZE_COMPACT if _compact else BUTTON_ICON_SIZE
+	custom_minimum_size = Vector2(target_size, target_size)
+	add_theme_constant_override("icon_max_width", icon_size)
 	_connect_toggle()
 
 	var selected := toggle_mode and button_pressed
@@ -56,7 +66,7 @@ func _apply() -> void:
 			else:
 				content_role = "on-surface-variant"
 
-	var radius := CopilotMd3Tokens.corner_radius("full", Vector2(SIZE, SIZE))
+	var radius := CopilotMd3Tokens.corner_radius("full", Vector2(target_size, target_size))
 	var fill_color := Color(0.0, 0.0, 0.0, 0.0)
 	if not fill_role.is_empty():
 		fill_color = _scheme.color(fill_role)
