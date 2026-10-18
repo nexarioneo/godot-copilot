@@ -84,5 +84,6 @@ permission system. Current version: 2.0.0 (full rebuild).
 - No Godot binary: verification is static review plus a manual smoke test by the
   user (`docs/ARCHITECTURE.md` section 12).
 - Linux/Termux-style paths; use `/tmp/opencode` for files outside the project.
-- Local git only (no remote); commits use the repo identity `Nexarioneo`.
+- Git: public GitHub remote `origin` (`nexarioneo/godot-copilot`); commits use
+  the repo identity `Nexarioneo`. Run the checks above before pushing.
 <!-- END:environment -->

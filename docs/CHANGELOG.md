@@ -37,6 +37,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - **Retry last turn**: `CopilotAgent.retry_last_turn()` +
   `CopilotSessionStore.trim_after_last_user()` re-run the last exchange; the
   assistant message card exposes a Retry action.
+- **Open-source packaging**: MIT `LICENSE` (copyright Nexarioneo), README
+  project-status and AI-assistance notes, and a public GitHub repository.
 
 ### Changed
 
