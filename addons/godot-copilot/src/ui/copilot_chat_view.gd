@@ -9,6 +9,8 @@ extends ScrollContainer
 const MAX_ARG_DISPLAY := 60
 const BUBBLE_MAX_WIDTH_RATIO := 0.85
 const BUBBLE_MIN_WIDTH := 96
+const BUBBLE_PAD_H := 16
+const BUBBLE_PAD_V := 10
 const PAD_H := 12
 const SUBAGENT_SEPARATOR := " → "
 
@@ -285,7 +287,7 @@ func _make_user_bubble(text: String) -> void:
 	bubble.configure(_scheme, CopilotMd3Card.VARIANT_FILLED)
 	bubble.set_roles("primary-container")
 	bubble.set_corner_radii(16, 16, 4, 16)
-	bubble.set_padding(PAD_H, CopilotMd3Tokens.spacing("s"), PAD_H, CopilotMd3Tokens.spacing("s"))
+	bubble.set_padding(BUBBLE_PAD_H, BUBBLE_PAD_V, BUBBLE_PAD_H, BUBBLE_PAD_V)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	row.add_child(column)
@@ -309,13 +311,16 @@ func _make_user_bubble(text: String) -> void:
 	bubble.set_meta("message_text", text)
 	_user_bubbles.append(bubble)
 	_reflow_user_bubbles()
+	# The row has no size until the next layout pass: reflow again so the
+	# bubble gets its measured width instead of collapsing to one letter.
+	_reflow_user_bubbles.call_deferred()
 
 func _make_assistant_card(text: String) -> Dictionary:
 	var card := CopilotMd3Card.new()
 	card.configure(_scheme, CopilotMd3Card.VARIANT_FILLED)
 	card.set_roles("surface-container-high")
 	card.set_corner_radii(16, 16, 16, 4)
-	card.set_padding(PAD_H, CopilotMd3Tokens.spacing("s"), PAD_H + 8, CopilotMd3Tokens.spacing("s"))
+	card.set_padding(BUBBLE_PAD_H, BUBBLE_PAD_V, BUBBLE_PAD_H + 8, BUBBLE_PAD_V)
 	_content.add_child(card)
 
 	var box := VBoxContainer.new()
@@ -402,15 +407,8 @@ func _make_notice(text: String, severity: String) -> void:
 	icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(icon_rect)
 	var label := RichTextLabel.new()
-	label.bbcode_enabled = false
-	label.fit_content = true
-	label.scroll_active = false
-	label.selection_enabled = true
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(label, content_role, "body-small")
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_font_override("normal_font", CopilotMd3Tokens.font_for_weight(CopilotMd3Tokens.type_weight("body-small")))
-	label.add_theme_font_size_override("normal_font_size", CopilotMd3Tokens.type_size("body-small"))
-	label.add_theme_color_override("default_color", _scheme.color(content_role))
 	label.add_text(text)
 	row.add_child(label)
 
@@ -445,16 +443,22 @@ func _hide_actions_if_outside(card: Control, actions: Control) -> void:
 	if not card.get_global_rect().has_point(get_global_mouse_position()):
 		actions.visible = false
 
-func _style_body(body: RichTextLabel, color_role: String) -> void:
+func _style_body(body: RichTextLabel, color_role: String, font_style: String = "body-medium") -> void:
 	body.bbcode_enabled = false
 	body.fit_content = true
 	body.scroll_active = false
 	body.selection_enabled = true
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.add_theme_font_override("normal_font", CopilotMd3Tokens.font_for_weight(CopilotMd3Tokens.type_weight("body-medium")))
-	body.add_theme_font_size_override("normal_font_size", CopilotMd3Tokens.type_size("body-medium"))
+	body.add_theme_font_override("normal_font", CopilotMd3Tokens.font_for_weight(CopilotMd3Tokens.type_weight(font_style)))
+	body.add_theme_font_size_override("normal_font_size", CopilotMd3Tokens.type_size(font_style))
 	body.add_theme_color_override("default_color", _scheme.color(color_role))
 	body.add_theme_color_override("selection_color", _scheme.alpha("primary", 0.30))
+	# The editor theme draws RichTextLabel with a filled box (surface low plus
+	# content margins); chat text sits on our own surfaces, so both states are
+	# cleared.
+	var empty := StyleBoxEmpty.new()
+	body.add_theme_stylebox_override("normal", empty)
+	body.add_theme_stylebox_override("focus", empty)
 
 func _set_streaming(streaming: bool) -> void:
 	if _current_assistant.is_empty():
@@ -487,7 +491,12 @@ func _stop_caret_tween() -> void:
 func _reflow_user_bubbles() -> void:
 	if _content == null:
 		return
+	# The content column may not have been laid out yet (first frame after a
+	# session restore); fall back to the scroll container width so bubbles are
+	# never measured against a zero width and wrapped one letter per line.
 	var available := _content.size.x
+	if available <= 0.0:
+		available = size.x
 	if available <= 0.0:
 		return
 	var cap := maxf(float(BUBBLE_MIN_WIDTH), available * BUBBLE_MAX_WIDTH_RATIO)
@@ -495,8 +504,8 @@ func _reflow_user_bubbles() -> void:
 		if not is_instance_valid(bubble):
 			continue
 		var text := str(bubble.get_meta("message_text", ""))
-		var measured := _measure_text_width(text) + PAD_H * 2
-		bubble.custom_minimum_size.x = minf(measured, cap)
+		var measured := _measure_text_width(text) + BUBBLE_PAD_H * 2
+		bubble.custom_minimum_size.x = clampf(measured, float(BUBBLE_MIN_WIDTH), cap)
 
 func _measure_text_width(text: String) -> float:
 	var font := CopilotMd3Tokens.font_for_weight(CopilotMd3Tokens.type_weight("body-medium"))

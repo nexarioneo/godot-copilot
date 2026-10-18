@@ -188,6 +188,10 @@ func _ensure_built() -> void:
 	_output_label.selection_enabled = true
 	_output_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_output_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Clear the editor theme's filled RichTextLabel box; the output panel draws
+	# its own surface.
+	_output_label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	_output_label.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	output_box.add_child(_output_label)
 
 	_output_button = CopilotMd3Button.new()
