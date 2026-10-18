@@ -9,6 +9,10 @@ extends CopilotMd3ListItem
 const BADGE_SIZE := 28
 const BADGE_ICON_SIZE := 20
 const CHECK_SIZE := 18
+# The badge stays white in both modes so vendor logos (mostly black or dark
+# mono marks) keep their contrast; see DESIGN.md section 12.
+const BADGE_FILL := Color("#ffffff")
+const BADGE_CONTENT := Color("#1d1b20")
 
 var provider_name := ""
 
@@ -45,7 +49,8 @@ func _build_badge(scheme: CopilotMd3Scheme, icon_path: String) -> Control:
 	badge.custom_minimum_size = Vector2(BADGE_SIZE, BADGE_SIZE)
 	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var box := scheme.box("surface-container-lowest", CopilotMd3Tokens.corner_radius("extra-small", Vector2(BADGE_SIZE, BADGE_SIZE)))
+	var box := scheme.box("", CopilotMd3Tokens.corner_radius("extra-small", Vector2(BADGE_SIZE, BADGE_SIZE)), "outline-variant", 1)
+	box.bg_color = BADGE_FILL
 	box.content_margin_left = CopilotMd3Tokens.spacing("xs")
 	box.content_margin_right = CopilotMd3Tokens.spacing("xs")
 	box.content_margin_top = CopilotMd3Tokens.spacing("xs")
@@ -71,7 +76,7 @@ func _build_badge(scheme: CopilotMd3Scheme, icon_path: String) -> Control:
 		_badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		CopilotMd3Tokens.apply_text(_badge_label, "label-small")
-		_badge_label.add_theme_color_override("font_color", scheme.color("on-surface"))
+		_badge_label.add_theme_color_override("font_color", BADGE_CONTENT)
 		badge.add_child(_badge_label)
 	return badge
 

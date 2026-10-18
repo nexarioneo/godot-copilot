@@ -11,7 +11,7 @@ extends PopupPanel
 signal item_selected(id: int)
 
 const PAD := 8
-const MIN_WIDTH := 200
+const MIN_WIDTH := 260
 const MAX_LIST_HEIGHT := 320
 const SEPARATOR_INSET := 8
 
@@ -128,6 +128,11 @@ func popup_on(anchor: Control) -> void:
 	if anchor == null:
 		return
 	_build_ui()
+	# Menus outlive editor theme switches: re-resolve the mode before showing.
+	if _scheme != null and is_inside_tree():
+		var detected := CopilotMd3Scheme.for_node(self)
+		if detected != _scheme:
+			set_scheme(detected)
 	_update_scroll_cap()
 	var needed := _root.get_combined_minimum_size() + Vector2(float(PAD * 2), float(PAD * 2))
 	var target := Vector2i(maxi(int(ceilf(needed.x)), MIN_WIDTH), int(ceilf(needed.y)))

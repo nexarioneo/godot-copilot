@@ -229,18 +229,17 @@ func _build_status_strip(parent: Control) -> void:
 	_status_label.name = "status_label"
 	CopilotMd3Tokens.apply_text(_status_label, "label-small")
 	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_status_label.clip_text = true
 	strip.add_child(_status_label)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	strip.add_child(spacer)
 
 	_model_label = Label.new()
 	_model_label.name = "model_label"
 	CopilotMd3Tokens.apply_text(_model_label, "label-small")
 	_model_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_model_label.clip_text = true
+	# The model label expands into the leftover space and ellipsizes first when
+	# the dock is narrow; the state label keeps its full text.
+	_model_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_model_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_model_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	strip.add_child(_model_label)
 
 func _header_button(parent: Control, symbol_name: String, tooltip: String, action: Callable) -> CopilotMd3IconButton:
@@ -471,6 +470,7 @@ func _update_buttons() -> void:
 func _update_model_label() -> void:
 	if _model_label != null and agent != null:
 		_model_label.text = agent.active_model_label()
+		_model_label.tooltip_text = _model_label.text
 
 func _update_provider_availability() -> void:
 	if _chat_view != null and agent != null:
