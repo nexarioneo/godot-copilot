@@ -222,6 +222,8 @@ func _row_box(fill_color: Color, radius: int) -> StyleBoxFlat:
 func _focus_box(radius: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.draw_center = false
+	if not CopilotMd3Tokens.focus_ring_visible():
+		return sb
 	sb.set_border_width_all(CopilotMd3Tokens.FOCUS_RING_WIDTH)
 	sb.border_color = _scheme.color("primary")
 	sb.set_corner_radius_all(radius)

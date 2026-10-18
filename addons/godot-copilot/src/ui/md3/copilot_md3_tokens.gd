@@ -323,6 +323,12 @@ static func apply_shadow(sb: StyleBoxFlat, level: int) -> void:
 	sb.shadow_size = int(cfg.get("size", 0))
 	sb.shadow_offset = Vector2(0.0, float(cfg.get("offset", 0)))
 
+static func focus_ring_visible() -> bool:
+	# Focus rings are a keyboard affordance. On a touch screen the ring lingers
+	# after a tap and reads as a stray second outline next to the state layer,
+	# so components suppress it there.
+	return not DisplayServer.is_touchscreen_available()
+
 static func _load_font(path: String) -> Font:
 	if _font_cache.has(path):
 		return _font_cache[path] as Font

@@ -155,5 +155,5 @@ func _draw() -> void:
 	if button_pressed and _tick_texture != null:
 		draw_texture_rect(_tick_texture, box_rect, false, _scheme.color("surface") if disabled else _scheme.color("on-primary"))
 
-	if has_focus():
+	if has_focus() and CopilotMd3Tokens.focus_ring_visible():
 		draw_style_box(_focus_box, box_rect.grow(float(CopilotMd3Tokens.FOCUS_RING_OFFSET)))
