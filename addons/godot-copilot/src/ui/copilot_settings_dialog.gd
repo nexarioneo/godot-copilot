@@ -49,8 +49,10 @@ var _model_menu_target := ""
 func _ready() -> void:
 	super._ready()
 	configure(_scheme, "Settings", "Close")
-	min_size = Vector2i(560, 480)
-	size = Vector2i(620, 540)
+	# Dismiss-only dialog: quiet text action instead of a filled primary.
+	set_ok_variant(CopilotMd3Button.VARIANT_TEXT)
+	min_size = Vector2i(560, 420)
+	set_preferred_size(Vector2i(640, 560))
 	_build_ui()
 
 func setup(p_config: CopilotConfig) -> void:
@@ -99,6 +101,7 @@ func _rebuild_content() -> void:
 	for child in body().get_children():
 		if child == _title_label:
 			continue
+		body().remove_child(child)
 		child.queue_free()
 	_build_ui()
 	refresh()
@@ -110,9 +113,10 @@ func _build_ui() -> void:
 		return
 	var tabs := CopilotMd3Tabs.new()
 	tabs.name = "settings_tabs"
-	tabs.custom_minimum_size = Vector2(540, 420)
+	tabs.custom_minimum_size = Vector2(480, 360)
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.set_compact(true)
 	body().add_child(tabs)
 	_build_permissions_tab(tabs)
 	_build_memory_tab(tabs)
@@ -145,6 +149,7 @@ func _build_permissions_tab(tabs: CopilotMd3Tabs) -> void:
 		var radio := CopilotMd3Radio.new()
 		tab.add_child(radio)
 		radio.configure(_scheme, str(PRESET_ENTRIES[i][0]), str(PRESET_ENTRIES[i][1]))
+		radio.set_dense(true)
 		radio.pressed.connect(_on_preset_pressed.bind(i))
 		_preset_radios.append(radio)
 
@@ -160,6 +165,7 @@ func _build_permissions_tab(tabs: CopilotMd3Tabs) -> void:
 	rules_row.add_child(rules_label)
 	_rule_list_segments = CopilotMd3SegmentedButtons.new()
 	_rule_list_segments.configure(_scheme, PackedStringArray(["Deny (0)", "Ask (0)", "Allow (0)"]))
+	_rule_list_segments.set_compact(true)
 	_rule_list_segments.tooltip_text = "Choose which rule list is shown"
 	_rule_list_segments.item_selected.connect(func(_index: int) -> void: _refresh_rules())
 	rules_row.add_child(_rule_list_segments)
@@ -178,13 +184,14 @@ func _build_permissions_tab(tabs: CopilotMd3Tabs) -> void:
 	add_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	tab.add_child(add_row)
 	_rule_edit = CopilotMd3TextField.new()
-	_rule_edit.configure(_scheme, "read_file(res://scripts/)", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_rule_edit.configure(_scheme, "read_file(res://scripts/)", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	_rule_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rule_edit.tooltip_text = "Format: action(target). Example: command(git), http_request(godotengine.org)"
 	_rule_edit.text_submitted.connect(func(_text: String) -> void: _on_rule_add_pressed())
 	add_row.add_child(_rule_edit)
 	var add_button := CopilotMd3IconButton.new()
 	add_button.configure(_scheme, CopilotMd3Button.VARIANT_FILLED, "", "add")
+	add_button.set_compact(true)
 	add_button.tooltip_text = "Add a rule to the selected list"
 	add_button.pressed.connect(_on_rule_add_pressed)
 	add_row.add_child(add_button)
@@ -211,13 +218,14 @@ func _build_memory_tab(tabs: CopilotMd3Tabs) -> void:
 	grid.add_child(_form_label("Compaction mode"))
 	_memory_mode_segments = CopilotMd3SegmentedButtons.new()
 	_memory_mode_segments.configure(_scheme, PackedStringArray(["Text — summary", "Native — provider"]))
+	_memory_mode_segments.set_compact(true)
 	_memory_mode_segments.tooltip_text = "How long context is handled"
 	_memory_mode_segments.item_selected.connect(_on_memory_mode_selected)
 	grid.add_child(_memory_mode_segments)
 
 	grid.add_child(_form_label("Compaction model"))
 	_memory_model_edit = CopilotMd3TextField.new()
-	_memory_model_edit.configure(_scheme, "(empty = active model)", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_memory_model_edit.configure(_scheme, "(empty = active model)", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	_memory_model_edit.tooltip_text = "Model used to create the summary"
 	_memory_model_edit.text_submitted.connect(func(_text: String) -> void: _save_memory_model())
 	_memory_model_edit.focus_exited.connect(_save_memory_model)
@@ -277,13 +285,14 @@ func _build_agent_tab(tabs: CopilotMd3Tabs) -> void:
 	add_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	tab.add_child(add_row)
 	_subagent_name_edit = CopilotMd3TextField.new()
-	_subagent_name_edit.configure(_scheme, "New sub-agent name", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_subagent_name_edit.configure(_scheme, "New sub-agent name", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	_subagent_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_subagent_name_edit.tooltip_text = "Add a name the model may call as a sub-agent"
 	_subagent_name_edit.text_submitted.connect(func(_text: String) -> void: _on_subagent_add_pressed())
 	add_row.add_child(_subagent_name_edit)
 	_subagent_model_button = CopilotMd3Button.new()
 	_subagent_model_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED)
+	_subagent_model_button.set_compact(true)
 	_subagent_model_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_subagent_model_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_subagent_model_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -292,6 +301,7 @@ func _build_agent_tab(tabs: CopilotMd3Tabs) -> void:
 	add_row.add_child(_subagent_model_button)
 	var add_button := CopilotMd3IconButton.new()
 	add_button.configure(_scheme, CopilotMd3Button.VARIANT_FILLED, "", "add")
+	add_button.set_compact(true)
 	add_button.tooltip_text = "Add sub-agent"
 	add_button.pressed.connect(_on_subagent_add_pressed)
 	add_row.add_child(add_button)
@@ -395,6 +405,7 @@ func _refresh_subagents() -> void:
 		var current_model := str(config.get_subagent_config(subagent_name).get("model", ""))
 		var model_button := CopilotMd3Button.new()
 		model_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED)
+		model_button.set_compact(true)
 		model_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		model_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		model_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

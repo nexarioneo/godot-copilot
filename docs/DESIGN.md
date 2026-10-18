@@ -200,12 +200,23 @@ is enabled (planned in Settings).
 
 ### 3.8 Density and sizing
 
-- `dp = px`, 1:1. No global scale factor in the first rollout.
-- Compact adjustments for the dock: header bar 48px (M3 small app bar is 64px,
-  reduced to fit dock tabs), chat message body body-medium, list rows inside the
-  dock 48px one-line / 64px two-line (dialogs keep 56/72).
-- Minimum interactive target 40x40px in the dock, 48x48px in dialogs; icon-only
-  controls expose tooltips.
+- `dp = px`, 1:1. No global scale factor.
+- Two density tiers share one design system:
+  - **Dock tier** (`TARGET_DOCK`): header bar 48px (M3 small app bar is 64px,
+    reduced to fit dock tabs), controls 40px, icon buttons 40px with a 24px
+    icon, chat chrome at body-medium.
+  - **Dialog tier** (dialogs are secondary surfaces: they compete with the
+    editor area and usually sit on a smaller screen): buttons follow the M3
+    Expressive XS size (32px, 12px side padding, 16px icon), icon buttons 32px
+    with a 20px icon, text fields the dense 40px form, segmented buttons the
+    density step 36px, tab bars 35px, radios the dense 40/56. Tokens:
+    `TARGET_DIALOG_BUTTON` (32), `TARGET_DIALOG_FIELD` (40),
+    `TARGET_DIALOG_SEGMENTED` (36), `DIALOG_PAD` (20).
+- Menus are compact by context: `CopilotMd3Menu` always uses dense
+  `CopilotMd3ListItem` rows (48px one-line / 64px two-line with 12/6 padding),
+  because menus appear over both the dock and dialogs.
+- Dock controls never go below 40x40px, dialog controls never below 32x32px;
+  icon-only controls expose tooltips.
 
 ---
 
@@ -225,17 +236,19 @@ General rules for every component in the library:
 
 - Base: `Button`. Variants: filled, tonal, outlined, text, danger (filled with
   `error`), elevated.
-- Sizes: S default (40px, padding 16-24, icon 18), M (48px) for dialog primary
-  actions; pill shape (corner full).
+- Sizes: S default (40px, padding 16, icon 18), compact/XS (32px, `set_compact`,
+  padding 12, icon 16) used by every dialog control, M (48px) reserved for
+  high-emphasis dock actions; pill shape (corner full).
 - States per MATERIAL3.md §9.1 + state layers §3.7.
-- Used for: Send (filled, icon), Stop (tonal, icon), dialog actions (text inside
-  dialogs per M3 dialog spec, filled for wizard primary), "Add key/model"
-  (outlined), destructive confirm (danger), "Open API key page" (outlined + icon).
+- Used for: Send (filled, icon), Stop (tonal, icon), dialog actions (compressed
+  32px, end-aligned), "Add key/model" (tonal/outlined), destructive confirm
+  (danger), "Open API key page" (text + icon).
 
 ### 4.2 CopilotMd3IconButton
 
 - Base: `Button`. Variants: standard (default), filled, tonal, outlined.
-  Container 40x40, icon 24 (20 in dense rows).
+  Container 40x40, icon 24; the compact form (`set_compact`) is 32x32 with a
+  20px icon and is the default inside dialogs.
 - Used for: dock header actions (sessions, new session, settings, providers,
   clear), row actions (edit, delete, move up/down, reload, reveal, close), model
   import, stop testing.
@@ -252,8 +265,8 @@ General rules for every component in the library:
 
 - Base: `LineEdit` with M3 geometry: outlined (`outline-variant` 1px border,
   2px primary on focus, corner 4) or filled (surface-container-highest with a
-  bottom indicator turning primary/2dp on focus); fixed height (56 default, 48 in
-  dialogs, 40 in menus), 16px horizontal padding, body-large text, placeholder.
+  bottom indicator turning primary/2dp on focus); fixed height (56 default, 40 in
+  dialogs and menus), 16px horizontal padding, body-large text, placeholder.
 - Used for: provider wizard fields, key/model editors, rule input, compaction
   model, search fields.
 
@@ -269,9 +282,13 @@ General rules for every component in the library:
 
 ### 4.6 CopilotMd3ListItem
 
-- Base: `Button` (flat, full-row). Supports 1-line (48/56) and 2-line (64/72)
+- Base: `Button` (flat, full-row). Supports 1-line (56) and 2-line (72)
   layouts; leading visual (icon 24 or logo 28), title, supporting text, trailing
-  widgets (icon buttons, switch, badge).
+  widgets (icon buttons, switch, badge). The dense form (`set_dense`, used by
+  every dialog row) is 48 one-line / 64 two-line with 12/6 padding.
+- Click is stationary (state layer only, no motion); the whole row is the target,
+  so trailing controls must keep their own input handling and rows in dialogs use
+  the dense padding.
 - States: hover/focus/pressed state layer on-surface; selected =
   `secondary-container` (also used to mark the active provider/model/session),
   disabled 38%.
@@ -287,8 +304,20 @@ General rules for every component in the library:
   margins. Keyboard: up/down/escape; the search field takes focus when present.
 - The sessions menu lists `title  (N steps)` rows, checks the current session and
   appends a danger "Delete current session" item when a session is active.
-- Used for: sessions menu, add-provider preset menu, active-model picker,
-  subagent model picker, context menus.
+- Used for: sessions menu, add-provider preset menu, detail overflow menus (open
+  key page / delete provider), active-model picker, subagent model picker,
+  context menus.
+- Placement: `popup_on(anchor)` computes the anchor rectangle in the coordinate
+  space of the viewport that embeds the popup. An embedded popup is drawn by the
+  innermost ancestor viewport with subwindow embedding enabled — in the editor
+  that is the root viewport, since a `Window`'s own viewport does not embed
+  subwindows by default — while a control inside a dialog reports positions in
+  the dialog's canvas space; the component walks the window chain and adds each
+  window position up to that embedder (mirroring the engine's
+  `Window::get_embedder()`), then clamps inside the embedder rect, flipping
+  above the anchor when the menu would overflow the bottom. That keeps a dialog
+  menu attached to its button instead of jumping to the editor origin. Native
+  popups (embedding disabled) fall back to screen coordinates.
 
 ### 4.8 CopilotMd3Tabs
 
@@ -297,6 +326,8 @@ General rules for every component in the library:
   label-large labels, primary label on selected / on-surface-variant otherwise,
   3px primary indicator along the bottom of the selected tab, 1px
   `outline-variant` line under the whole bar.
+- `set_compact()` shortens the bar to 35px and the label padding, used by both
+  dialogs, so the tab row does not dominate a dialog.
 - Switching animates: the indicator slides between tab positions (250ms,
   emphasized-decelerate) and the incoming page fades in (200ms,
   standard-decelerate). The indicator is drawn by the component (the selected
@@ -313,15 +344,24 @@ General rules for every component in the library:
 
 - Base: borderless embedded `AcceptDialog`: the window frame is disabled and the
   dialog draws a single `surface-container-high` panel (corner 28, elevation 3,
-  24px padding) with an in-panel title (headline-small, on-surface) at the
-  top-left, content margins per M3 dialog (title-to-body 16, body-to-actions
-  24), actions as text buttons (label-large, primary) with 8px gaps,
-  right-aligned.
+  20px padding) with an in-panel title (title-large, on-surface) at the
+  top-left, 12px title-to-body separation, and end-aligned compact actions
+  (32px, right-aligned primary + text buttons).
+- Action bar: `AcceptDialog` sandwiches its buttons between expanding spacers
+  and forces a theme minimum on each one, so the base strips the expand flags,
+  keeps the spacers in place (the engine's `remove_button` looks them up) and
+  aligns the bar to the end; the compact height/width go through the
+  `buttons_min_height` / `buttons_min_width` theme constants the engine reads on
+  every layout pass.
 - Note: with `borderless = true` the editor's square window decoration
   (embedded border and title bar) is gone; there is no close icon in the frame,
   the dialog closes through its action buttons (and Escape). The window also
   sets `transparent` (like `PopupPanel`), otherwise the viewport clear color
   would show as a square of background behind the rounded panel corners.
+- Preferred size: `set_preferred_size(Vector2i)` sets the window size before it
+  is shown (a zero axis keeps the content minimum). The provider manager asks
+  for 920x620, the settings dialog 640x560, the wizard and the key/model editors
+  a width only.
 - Size clamp: before every show the dialog sets `max_size` to the editor base
   control rect minus an 8px margin (`min_size` is pulled down first when the
   screen cannot fit it; `Window.max_size` exists from Godot 4.7, older engines
@@ -332,11 +372,11 @@ General rules for every component in the library:
   the window stops at the edge: the title stays visible, pages inside scroll,
   and the action buttons are never pushed below the clipped bottom edge. The
   settings and provider manager pages therefore keep their bodies scrollable.
-- Position clamp: the engine centers embedded windows on the whole viewport
-  and pins a window taller than the editor area to the top, which cuts the
-  action bar off below the screen edge. After sizing, the dialog nudges its
-  position back inside the editor base rect so the title and the action
-  buttons stay reachable.
+- Position: the engine centers embedded windows on the whole viewport rect
+  (`get_embedder()->get_visible_rect()`) and fits a window that does not fit
+  against the embedder edges; after sizing, the dialog centers itself inside the
+  editor base rect (minus the same 8px margin) so the title and the action
+  buttons stay reachable on small screens.
 - The dialog re-resolves the theme mode when shown and rebuilds its content when
   the editor switches light/dark while the instance is alive.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
@@ -364,7 +404,9 @@ General rules for every component in the library:
   right; disabled uses 38% content / 12% container.
 - `CopilotMd3Radio` (implemented): `Button` row with a 20px radio circle
   (10px primary dot when selected), body-large title + optional body-small
-  supporting text; exclusivity is managed by the caller.
+  supporting text; exclusivity is managed by the caller. `set_dense(true)` is
+  the dialog form: 40px one-line / 56px two-line with 4px vertical padding and a
+  12px circle gap (used by the permissions preset list).
 - State layer: only while held (10%), plus hover/focus in primary (8%) on
   pointer devices. Touch devices skip the hover/focus layer, which would
   linger after a tap, and the 2px focus ring is keyboard-only
@@ -429,9 +471,10 @@ General rules for every component in the library:
   1px outline, 40px height, full (pill) outer corners, 1px `outline-variant`
   dividers between segments, selected segment `secondary-container` /
   `on-secondary-container`; second tap on the selected index does not re-emit.
+  `set_compact(true)` is the dialog form (36px height, 12px label padding).
 - Used for: permission rule mode (Deny / Ask / Allow), memory mode (Text /
   Native), provider kind (OpenAI / Anthropic), API type (chat_completions /
-  responses).
+  responses), key rotation strategy (Round-robin / Sticky).
 
 ### 4.19 CopilotMd3ToolRow
 
@@ -621,70 +664,89 @@ composer:
 
 ## 9. Provider Manager (dialog)
 
-Layout unchanged (list left, detail right) with M3 components:
+Master-detail inside one dialog, everything on the dialog density tier (32px
+controls, 40px fields, dense rows, 20px padding) — the provider list is a fixed
+208px pane, the detail pane is the editor-facing half:
 
-- Dialog: `CopilotMd3Dialog`, min 780x480 (initial 900x560), title "Provider
-  Manager", headline-small.
-- Left: `CopilotMd3ListItem` rows (56px): logo badge 28 (mono logos on a rounded
-  white badge, colored logos as-is, fallback = initial letters), title = provider
-  name (body-large), supporting = "3 active keys" / "No keys yet" (body-small).
-  Selected row = `secondary-container`; active provider shows a check_circle icon
+- Dialog: `CopilotMd3Dialog`, preferred size 920x620, minimum 640x400, clamped
+  to the editor rect; title "Provider Manager".
+- Left pane: header with a label-large "Providers" caption and a compact tonal
+  "+" icon button (presets + "Custom provider…" menu). Rows are dense
+  `CopilotMd3ListItem` (64px): logo badge 28 (mono logos on a rounded white
+  badge, colored logos as-is, fallback = initial letters), title = provider name
+  (body-large), supporting = "3 active keys" / "No keys yet" (body-small).
+  Selected row = `secondary-container`; the active provider shows a check_circle
   in primary on the trailing edge.
-- Left header: "Add" = `CopilotMd3Button` tonal with expand_more, opening
-  `CopilotMd3Menu` (presets + "Custom provider..."); "Delete" = icon button
-  (delete) with a `CopilotMd3Confirm` confirmation.
-- Right header: provider name (title-large) + base URL (body-small, mono for the
-  host part); "Open API key page" outlined button with open_in_new.
-- Tabs: `CopilotMd3Tabs` (Keys / Models / Advanced).
-- Keys tab: list of `CopilotMd3ListItem` (2-line): leading switch (enabled),
-  title = key label (body-large), supporting = masked value (`sk-...abc1`, mono,
-  body-small), trailing = test status chip (Valid / Failed / queued / testing
-  spinner) + icon buttons (reveal visibility, reload, arrow_up, arrow_down, edit,
-  delete). Below: tonal "Add key", outlined "Test all", text "Stop" (stop icon,
-  only while testing); key strategy row: `CopilotMd3Switch` (round robin) + sticky
-  count (`CopilotMd3SpinField`, visible when round robin is off).
-- Models tab: "Active model" row = outlined select button showing the current
-  model, opening `CopilotMd3Menu` (search field inside the menu when the list is
-  long). Model rows: `CopilotMd3ListItem` with leading switch (enabled; disabled
-  rows rendered last and dimmed), title = model id (mono), supporting = display
-  name plus `[vision, reasoning]` hints, trailing delete. Header actions: import
-  (tonal, download icon; a `CopilotMd3LinearProgress` shows while importing),
-  "Add model" (outlined), "Enable all" / "Disable all" (text, done_all /
-  remove_done icons).
-- Advanced tab: kind as a read-only label row; Base URL and Model Prefix as
-  outlined text fields; API Type as 2-segment `SegmentedButtons` (disabled for the
-  Anthropic kind). All fields save automatically; a body-small hint states this.
-- Wizard: `CopilotMd3Dialog` with outlined text fields (Name, Base URL, Model
-  prefix, first key, first model), Kind as 2-segment `SegmentedButtons`
-  (OpenAI / Anthropic), API type as 2-segment (chat completions / responses,
-  disabled for the Anthropic kind), "Get API key" text button with open_in_new,
-  actions Cancel (text) / Create (filled). Validation errors use an error-colored
-  supporting label.
-- Key / model editors: small `CopilotMd3Dialog`s with outlined fields and
-  switches, Cancel (text) / Save (filled); errors use an error-colored label.
+- Detail header: provider name (title-medium) with a body-small, mono meta line
+  (`base URL  ·  kind  ·  API type`) underneath, and a compact standard "⋮" icon
+  button opening the provider overflow menu: "Open API key page" (open_in_new,
+  only for known providers), separator, danger "Delete provider…" (with a
+  `CopilotMd3Confirm`). Moving both actions out of the header keeps the header
+  to one text block and one 32px button.
+- No providers: the detail pane shows a `CopilotMd3EmptyState` ("No providers
+  yet", hub icon, tonal "Add provider" action) instead of tabs.
+- Tabs: compact `CopilotMd3Tabs` (Keys / Models / Advanced), each page a
+  `VBox` with a scrolling list and a tab-local toolbar at the bottom (a 1px
+  divider separates the toolbar from the content; no toolbars in the dialog
+  header).
+- Keys tab: dense 2-line rows — leading switch (enabled), title = key label
+  (body-large), supporting = masked value (`sk-...abc1`, mono, body-small),
+  trailing = test status chip (Valid / Failed / queued / testing spinner) +
+  compact icon buttons (reveal visibility, reload, arrow_up, arrow_down, edit,
+  delete). Toolbar: tonal "Add key" + outlined "Test all" on the left, text
+  "Stop" (only while testing) on the right. Above the toolbar: "Key rotation"
+  row with a compact segmented control (Round-robin / Sticky) and, only for
+  Sticky, a "Requests per key before switching" row with a `CopilotMd3SpinField`
+  (96px) under it. Empty list shows a body-small hint instead of rows.
+- Models tab: "Active model" row = compact outlined select button (expand,
+  left-aligned, ellipsis) opening `CopilotMd3Menu` (searchable), plus a
+  `CopilotMd3LinearProgress` while importing. Dense model rows: leading switch
+  (enabled; disabled rows rendered last and dimmed), title = model id (mono),
+  supporting = display name plus `[vision, reasoning]`, trailing compact delete.
+  Toolbar: tonal "Import" (download icon), outlined "Add", and on the right two
+  compact standard icon buttons done_all / remove_done (enable all / disable
+  all). A body-small status line reports the import result; an empty list shows
+  a hint line.
+- Advanced tab: 2-column grid — Kind (read-only label), Base URL and Model
+  Prefix as 40px outlined fields, API Type as a compact 2-segment control
+  (disabled for the Anthropic kind), then a divider and a body-small hint that
+  changes save automatically.
+- Wizard: `CopilotMd3Dialog` (preferred width 520) with 40px outlined fields
+  (Name, Base URL, Model prefix, first key, first model), Kind as a compact
+  2-segment control (OpenAI / Anthropic), API type as a compact 2-segment
+  (chat completions / responses, disabled for the Anthropic kind), "Get API
+  key" compact text button with open_in_new, actions Cancel (text) / Create
+  (filled). Validation errors use an error-colored supporting label.
+- Key / model editors: small `CopilotMd3Dialog`s (preferred width 480) with 40px
+  outlined fields and switches, Cancel (text) / Save (filled); errors use an
+  error-colored label.
 
 ---
 
 ## 10. Settings Dialog
 
-`CopilotMd3Dialog`, min 560x480, tabs via `CopilotMd3Tabs`. Each tab page is a
-`ScrollContainer` (vertical scroll, horizontal disabled) so the dialog minimum
-stays below the editor height; the rule and subagent lists keep a 140px minimum
-wherever the page is squeezed:
+`CopilotMd3Dialog`, preferred 640x560, minimum 560x420, compact tabs via
+`CopilotMd3Tabs`. Each tab page is a `ScrollContainer` (vertical scroll,
+horizontal disabled) so the dialog minimum stays below the editor height; the
+rule and subagent lists keep a 140px minimum wherever the page is squeezed. All
+controls follow the dialog density tier (32px buttons/icon buttons, 40px fields,
+36px segmented controls, dense 40/56px preset radios, 32px action bar):
 
-1. **Permissions** — preset selection as three `CopilotMd3Radio` options with
-   supporting text (Sandbox / Review / Turbo), plus a hint line that follows the
-   selected preset. Rule editor: segmented control (Deny / Ask / Allow) with
-   counts, rule list (`CopilotMd3ListItem`, trailing delete), and an add-rule row:
-   outlined text field + filled icon button (add).
+1. **Permissions** — preset selection as three dense `CopilotMd3Radio` options
+   with supporting text (Sandbox / Review / Turbo), plus a hint line that follows
+   the selected preset. Rule editor: compact segmented control (Deny / Ask /
+   Allow) with counts, rule list (dense `CopilotMd3ListItem`, trailing compact
+   delete), and an add-rule row: 40px outlined text field + compact filled icon
+   button (add).
 2. **Memory** — switches (`CopilotMd3Switch`): auto-compact, prune tool output;
-   mode choice as segmented control (Text / Native); compaction model as outlined
-   text field (empty = active model); max steps and tail size as labeled
-   `CopilotMd3SpinField`s.
+   mode choice as a compact segmented control (Text / Native); compaction model as
+   a 40px outlined text field (empty = active model); max steps and tail size as
+   labeled `CopilotMd3SpinField`s (40px, 96px wide).
 3. **Agent** — max ReAct steps (`CopilotMd3SpinField`), subagent override list rows
-   (name + model select button opening `CopilotMd3Menu` + delete icon button),
-   empty state when no overrides ("No subagent overrides yet."), and an add row
-   (name field + model select + add icon button) with inline validation.
+   (name + compact model select button opening `CopilotMd3Menu` + compact delete
+   icon button), empty state when no overrides ("No subagent overrides yet."), and
+   an add row (name field + model select + compact add icon button) with inline
+   validation.
 
 Dangerous actions (if added later, e.g. reset settings) use the danger button
 variant and a confirmation `CopilotMd3Confirm`.
@@ -735,6 +797,7 @@ v2, but now second priority).
 | Import / download | download |
 | Enable all / disable all | done_all / remove_done |
 | Open external | open_in_new |
+| Overflow (more actions) | more_vert |
 | Close | close |
 | Active check | check_circle |
 | Empty state (chat) | auto_awesome |

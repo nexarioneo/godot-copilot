@@ -905,8 +905,13 @@ are listed in [DESIGN.md](DESIGN.md) section 4.
   from §7.2/7.3; respect a reduce-motion setting if the editor offers one.
 - **Fonts**: decide between bundling Roboto (Apache-2.0, authentic M3) or starting
   from the editor font with M3 metrics — see open decisions.
-- **Sizing**: M3 dp treated as px (desktop); no global scale factor in the first
-  rollout (density control reserved for later).
+- **Sizing**: M3 dp treated as px (desktop); no global scale factor. Two fixed
+  density tiers instead of a runtime scale: dock controls at the baseline S
+  coordinates (40dp buttons, 40x40dp icon buttons, 48/64dp list rows) and dialog
+  controls at the compact tier (32dp buttons following the Expressive XS row,
+  32x32dp icon buttons, 40dp dense text fields, 36dp segmented buttons, 48/64dp
+  dense list rows, 40/56dp dense radios). See DESIGN.md §3.8 for the token
+  names.
 - **Light/dark**: detect from the editor theme's base color brightness, with a
   manual override in plugin settings.
 - **Custom semantic roles**: success/warning/info are extension tokens (fill +

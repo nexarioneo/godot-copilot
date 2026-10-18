@@ -27,6 +27,7 @@ func _ready() -> void:
 func setup(scheme: CopilotMd3Scheme, p_provider_name: String, status_text: String, icon_path: String, selected: bool, active: bool) -> void:
 	provider_name = p_provider_name
 	configure(scheme, p_provider_name, status_text)
+	set_dense(true)
 	set_selected(selected)
 	set_subtitle_style("body-small")
 	set_leading(_build_badge(scheme, icon_path))

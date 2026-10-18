@@ -30,6 +30,7 @@ func setup(scheme: CopilotMd3Scheme, p_model_key: String, display_name: String, 
 		supporting_parts.append("[" + ", ".join(caps) + "]")
 	configure(scheme, p_model_key, " ".join(supporting_parts))
 	set_title_mono(true)
+	set_dense(true)
 	_active_switch = CopilotMd3Switch.new()
 	_active_switch.configure(scheme, not disabled)
 	_active_switch.tooltip_text = "Enable/disable this model in the model picker"

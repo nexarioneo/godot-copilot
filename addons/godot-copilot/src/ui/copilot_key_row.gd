@@ -33,6 +33,7 @@ func setup(scheme: CopilotMd3Scheme, index: int, label: String, value: String, e
 	configure(scheme, label if not label.is_empty() else "Key " + str(index + 1), "")
 	set_subtitle_style("body-small")
 	set_subtitle_mono(true)
+	set_dense(true)
 	_enabled_switch = CopilotMd3Switch.new()
 	_enabled_switch.configure(scheme, enabled)
 	_enabled_switch.tooltip_text = "Enable/disable this key for rotation"

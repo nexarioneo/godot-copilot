@@ -16,7 +16,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
   sampler, Tween helpers), `CopilotMd3Icons` (bundled Material Symbols with
   editor-icon fallback).
 - **Bundled design assets**: Roboto Regular/Medium (`assets/fonts/`, Apache-2.0)
-  and a curated 40-icon Material Symbols set as white 24px SVGs
+  and a curated 41-icon Material Symbols set as white 24px SVGs
   (`assets/symbols/`).
 - **Material 3 base components** (`src/ui/md3/`): `CopilotMd3StateLayer`,
   `CopilotMd3Button`, `CopilotMd3IconButton`, `CopilotMd3Card`,
@@ -72,6 +72,36 @@ Versions follow [Semantic Versioning](https://semver.org/).
   notices configure role, padding and corner overrides (`set_roles`,
   `set_padding`, `set_corner_radii`) instead of building one-off styleboxes; the
   permission card also applies its inherited elevated surface again (`super._apply`).
+- **Dialog density tier**: dialogs now use a compact control tier designed for
+  secondary surfaces (32px buttons and 32x32 icon buttons via `set_compact`,
+  40px text fields, 36px compact segmented controls, 35px compact tab bars,
+  dense 48/64 list rows, dense 40/56 radios) with a 20px panel padding and a
+  title-large in-panel title. Tokens: `TARGET_DIALOG_BUTTON`,
+  `TARGET_DIALOG_FIELD`, `TARGET_DIALOG_SEGMENTED`, `DIALOG_PAD`.
+- **Dialog action bar**: actions are compact (32px), end-aligned and use the
+  engine's `buttons_min_height` / `buttons_min_width` theme constants (the
+  engine rewrites each action button's minimum on every layout pass), so the OK
+  button no longer sits centered in a 48px bar.
+- **Dialog sizing**: `CopilotMd3Dialog.set_preferred_size()` replaces the
+  hard-coded window sizes (provider manager 920x620, settings 640x560, wizard and
+  editors width-only); every zero axis keeps the content minimum, and the clamp
+  to the editor rect still applies.
+- **Provider Manager redesigned**: fixed 208px provider pane (the drag handle
+  splitter is gone) with a dense provider list and a compact tonal "+" button
+  opening the preset menu; a detail header with the provider name, a mono
+  `base URL · kind · API type` meta line, and a "⋮" overflow menu holding "Open
+  API key page" and the danger "Delete provider…" confirm; tab-local toolbars at
+  the bottom of each tab (Add key / Test all / Stop, Import / Add / enable all /
+  disable all) instead of buttons in the header; key rotation as a compact
+  segmented control with a "Requests per key before switching" row that only
+  appears for Sticky; the active-model picker as a full-width select row; empty
+  states for "no providers", "no keys" and "no models"; the key status lines and
+  import progress moved out of the headers.
+- **Settings dialog compacted**: dense preset radios, compact segmented controls
+  for the rule list and compaction mode, 40px rule/subagent/model fields, compact
+  add buttons and subagent actions, preferred size 640x560 (minimum 560x420).
+- **Provider wizard and key/model editors compacted**: 40px fields, compact
+  segmented controls and "Get API key" button, preferred widths 520/480.
 
 ### Fixed
 
@@ -141,6 +171,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - **Segmented buttons churn**: selection changes rebuilt five styleboxes and ten
   color overrides per segment on every tap; the boxes are now created once and
   only their colors change, with a redraw request.
+- **Menus opened from a dialog landed away from their button**: an embedded
+  popup is drawn by the innermost ancestor viewport that embeds subwindows (the
+  editor area), while a control inside a dialog reports its position in the
+  dialog's canvas space, so the popup rect (dialog-local) was applied as if it
+  were an editor-space rect. `CopilotMd3Menu.popup_on()` now translates the
+  anchor through the window chain up to that embedder (mirroring the engine's
+  `Window::get_embedder()`), clamps inside the embedder rect and flips above the
+  anchor when the menu would overflow the bottom.
 
 ---
 

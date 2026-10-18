@@ -1,32 +1,48 @@
 @tool
 class_name CopilotProviderManager
 extends CopilotMd3Dialog
-# Provider manager dialog: provider list (left) + Keys/Models/Advanced tabs
-# (right), built entirely from the M3 component library.
+# Provider manager dialog: a dense master-detail panel built from the M3
+# component library. The provider list lives in a fixed-width left pane; the
+# right pane holds the provider header (title, endpoint line, overflow menu)
+# and the Keys / Models / Advanced tabs. Everything follows the dialog density
+# tier (DESIGN.md section 3.8): 32px controls, 40px fields, dense list rows and
+# tab-local toolbars instead of header buttons.
 
 signal providers_changed()
 
 const CUSTOM_PROVIDER_ID := 9999
+const LIST_WIDTH := 208
+const PREFERRED_SIZE := Vector2i(920, 620)
+const MIN_DIALOG_SIZE := Vector2i(640, 400)
+
+const DETAIL_OPEN_KEY_URL := 1
+const DETAIL_DELETE_PROVIDER := 2
 
 var config: CopilotConfig
 
 var _selected := ""
 
-var _add_button: CopilotMd3Button
+# Left pane
+var _add_button: CopilotMd3IconButton
 var _add_menu: CopilotMd3Menu
-var _remove_provider_button: CopilotMd3IconButton
 var _provider_list: VBoxContainer
 
+# Detail header
+var _detail_header: HBoxContainer
 var _detail_title: Label
-var _detail_url: Label
-var _detail_key_url_button: CopilotMd3Button
+var _detail_meta: Label
+var _detail_menu_button: CopilotMd3IconButton
+var _detail_menu: CopilotMd3Menu
+var _detail_content: VBoxContainer
+var _detail_empty: CopilotMd3EmptyState
 var _tabs: CopilotMd3Tabs
 
 # Keys tab
 var _keys_list: VBoxContainer
-var _round_robin_switch: CopilotMd3Switch
+var _keys_empty: Label
+var _strategy_segments: CopilotMd3SegmentedButtons
+var _sticky_row: HBoxContainer
 var _sticky_spin: CopilotMd3SpinField
-var _sticky_box: HBoxContainer
 var _test_all_button: CopilotMd3Button
 var _stop_test_button: CopilotMd3Button
 
@@ -35,6 +51,7 @@ var _active_model_button: CopilotMd3Button
 var _model_menu: CopilotMd3Menu
 var _model_menu_ids: Dictionary = {}
 var _models_list: VBoxContainer
+var _models_empty: Label
 var _import_progress: CopilotMd3LinearProgress
 var _import_button: CopilotMd3Button
 var _models_status: Label
@@ -54,8 +71,12 @@ var _testing_import := false
 func _ready() -> void:
 	super._ready()
 	configure(_scheme, "Provider Manager", "Close")
-	min_size = Vector2i(780, 480)
-	size = Vector2i(900, 560)
+	# Dismiss-only in-panel dialog: the single action is quiet (text) per the
+	# M3 full-screen dialog pattern; the wizard and editors keep the filled
+	# primary for their committing action.
+	set_ok_variant(CopilotMd3Button.VARIANT_TEXT)
+	min_size = MIN_DIALOG_SIZE
+	set_preferred_size(PREFERRED_SIZE)
 	_build_ui()
 
 func setup(p_config: CopilotConfig) -> void:
@@ -80,19 +101,23 @@ func _rebuild_content() -> void:
 		return
 	_tabs = null
 	_add_button = null
-	_remove_provider_button = null
 	_provider_list = null
+	_detail_header = null
 	_detail_title = null
-	_detail_url = null
-	_detail_key_url_button = null
+	_detail_meta = null
+	_detail_menu_button = null
+	_detail_content = null
+	_detail_empty = null
 	_keys_list = null
-	_round_robin_switch = null
+	_keys_empty = null
+	_strategy_segments = null
+	_sticky_row = null
 	_sticky_spin = null
-	_sticky_box = null
 	_test_all_button = null
 	_stop_test_button = null
 	_active_model_button = null
 	_models_list = null
+	_models_empty = null
 	_import_progress = null
 	_import_button = null
 	_models_status = null
@@ -108,9 +133,13 @@ func _rebuild_content() -> void:
 	if _model_menu != null and is_instance_valid(_model_menu):
 		_model_menu.queue_free()
 	_model_menu = null
+	if _detail_menu != null and is_instance_valid(_detail_menu):
+		_detail_menu.queue_free()
+	_detail_menu = null
 	for child in body().get_children():
 		if child == _title_label:
 			continue
+		body().remove_child(child)
 		child.queue_free()
 	_build_ui()
 	_refresh_providers()
@@ -120,31 +149,55 @@ func _rebuild_content() -> void:
 func _build_ui() -> void:
 	if _tabs != null:
 		return
-	var split := HSplitContainer.new()
+	var split := HBoxContainer.new()
 	split.name = "provider_split"
-	split.custom_minimum_size = Vector2(760, 460)
+	split.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("l"))
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body().add_child(split)
 
+	_build_provider_pane(split)
+	_build_detail_pane(split)
+
+	_add_menu = CopilotMd3Menu.new()
+	add_child(_add_menu)
+	_add_menu.configure(_scheme)
+	_add_menu.item_selected.connect(_on_add_menu_selected)
+	_populate_add_menu()
+
+	_model_menu = CopilotMd3Menu.new()
+	add_child(_model_menu)
+	_model_menu.configure(_scheme, true)
+	_model_menu.item_selected.connect(_on_model_menu_selected)
+
+	_detail_menu = CopilotMd3Menu.new()
+	add_child(_detail_menu)
+	_detail_menu.configure(_scheme)
+	_detail_menu.item_selected.connect(_on_detail_menu_selected)
+
+func _build_provider_pane(split: HBoxContainer) -> void:
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(240, 0)
-	left.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	left.custom_minimum_size = Vector2(LIST_WIDTH, 0)
+	left.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
 	split.add_child(left)
 
-	var left_header := HBoxContainer.new()
-	left_header.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
-	left.add_child(left_header)
-	_add_button = CopilotMd3Button.new()
-	_add_button.configure(_scheme, CopilotMd3Button.VARIANT_TONAL, "Add", "expand_more")
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	left.add_child(header)
+	var header_label := Label.new()
+	header_label.text = "Providers"
+	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CopilotMd3Tokens.apply_text(header_label, "label-large")
+	header_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	header.add_child(header_label)
+	_add_button = CopilotMd3IconButton.new()
+	_add_button.configure(_scheme, CopilotMd3IconButton.VARIANT_TONAL, "", "add")
+	_add_button.set_compact(true)
 	_add_button.tooltip_text = "Add a provider from a preset or a custom one"
 	_add_button.pressed.connect(_on_add_pressed)
-	left_header.add_child(_add_button)
-	_remove_provider_button = CopilotMd3IconButton.new()
-	_remove_provider_button.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", "delete")
-	_remove_provider_button.tooltip_text = "Delete the selected provider"
-	_remove_provider_button.pressed.connect(_on_remove_provider_pressed)
-	left_header.add_child(_remove_provider_button)
+	header.add_child(_add_button)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -155,50 +208,67 @@ func _build_ui() -> void:
 	_provider_list.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	scroll.add_child(_provider_list)
 
-	_add_menu = CopilotMd3Menu.new()
-	add_child(_add_menu)
-	_add_menu.configure(_scheme)
-	_add_menu.item_selected.connect(_on_add_menu_selected)
-	_populate_add_menu()
-
+func _build_detail_pane(split: HBoxContainer) -> void:
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	right.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
 	split.add_child(right)
 
-	var detail_header := HBoxContainer.new()
-	detail_header.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
-	right.add_child(detail_header)
+	_detail_header = HBoxContainer.new()
+	_detail_header.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	right.add_child(_detail_header)
 	var detail_box := VBoxContainer.new()
 	detail_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail_box.add_theme_constant_override("separation", 0)
-	detail_header.add_child(detail_box)
+	_detail_header.add_child(detail_box)
 	_detail_title = Label.new()
 	_detail_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	CopilotMd3Tokens.apply_text(_detail_title, "title-large")
+	CopilotMd3Tokens.apply_text(_detail_title, "title-medium")
 	_detail_title.add_theme_color_override("font_color", _scheme.color("on-surface"))
 	detail_box.add_child(_detail_title)
-	_detail_url = Label.new()
-	_detail_url.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	CopilotMd3Tokens.apply_text(_detail_url, "body-small")
-	_detail_url.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	_detail_meta = Label.new()
+	_detail_meta.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	CopilotMd3Tokens.apply_text(_detail_meta, "body-small")
+	_detail_meta.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
 	var mono := CopilotMd3Tokens.font_mono()
 	if mono != null:
-		_detail_url.add_theme_font_override("font", mono)
-	detail_box.add_child(_detail_url)
-	_detail_key_url_button = CopilotMd3Button.new()
-	_detail_key_url_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED, "Open API key page", "open_in_new")
-	_detail_key_url_button.tooltip_text = "Open this provider's API key page"
-	_detail_key_url_button.pressed.connect(_on_open_key_url_pressed)
-	detail_header.add_child(_detail_key_url_button)
+		_detail_meta.add_theme_font_override("font", mono)
+	detail_box.add_child(_detail_meta)
+	_detail_menu_button = CopilotMd3IconButton.new()
+	_detail_menu_button.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", "more_vert")
+	_detail_menu_button.set_compact(true)
+	_detail_menu_button.tooltip_text = "Provider actions"
+	_detail_menu_button.pressed.connect(_on_detail_menu_pressed)
+	_detail_header.add_child(_detail_menu_button)
+
+	_detail_content = VBoxContainer.new()
+	_detail_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_detail_content.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
+	right.add_child(_detail_content)
 
 	_tabs = CopilotMd3Tabs.new()
 	_tabs.configure(_scheme)
+	_tabs.set_compact(true)
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(_tabs)
+	_detail_content.add_child(_tabs)
 	_build_keys_tab()
 	_build_models_tab()
 	_build_advanced_tab()
+
+	_detail_empty = CopilotMd3EmptyState.new()
+	_detail_empty.configure(
+		_scheme,
+		"No providers yet",
+		"Add a provider from a preset or define a custom one to start chatting.",
+		"hub"
+	)
+	_detail_empty.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_empty.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_detail_empty.visible = false
+	var add_action := _detail_empty.add_action(CopilotMd3Button.VARIANT_TONAL, "Add provider", _on_add_pressed, "add")
+	add_action.set_compact(true)
+	right.add_child(_detail_empty)
 
 func _populate_add_menu() -> void:
 	_add_menu.clear_items()
@@ -211,7 +281,7 @@ func _populate_add_menu() -> void:
 func _build_keys_tab() -> void:
 	var keys_tab := VBoxContainer.new()
 	keys_tab.name = "Keys"
-	keys_tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	keys_tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
 	_tabs.add_child(keys_tab)
 
 	var scroll := ScrollContainer.new()
@@ -223,59 +293,81 @@ func _build_keys_tab() -> void:
 	_keys_list.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	scroll.add_child(_keys_list)
 
+	_keys_empty = Label.new()
+	_keys_empty.text = "No keys yet — add one to start using this provider."
+	_keys_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_keys_empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CopilotMd3Tokens.apply_text(_keys_empty, "body-small")
+	_keys_empty.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	keys_tab.add_child(_keys_empty)
+
+	keys_tab.add_child(_divider())
+
+	var strategy_row := HBoxContainer.new()
+	strategy_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
+	keys_tab.add_child(strategy_row)
+	var strategy_label := Label.new()
+	strategy_label.text = "Key rotation"
+	strategy_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	strategy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CopilotMd3Tokens.apply_text(strategy_label, "body-medium")
+	strategy_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	strategy_row.add_child(strategy_label)
+	_strategy_segments = CopilotMd3SegmentedButtons.new()
+	_strategy_segments.configure(_scheme, PackedStringArray(["Round-robin", "Sticky"]))
+	_strategy_segments.set_compact(true)
+	_strategy_segments.tooltip_text = "Round-robin rotates on every request; sticky reuses a key for N requests"
+	_strategy_segments.item_selected.connect(_on_strategy_selected)
+	strategy_row.add_child(_strategy_segments)
+
+	_sticky_row = HBoxContainer.new()
+	_sticky_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
+	keys_tab.add_child(_sticky_row)
+	var sticky_label := Label.new()
+	sticky_label.text = "Requests per key before switching"
+	sticky_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sticky_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sticky_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CopilotMd3Tokens.apply_text(sticky_label, "body-small")
+	sticky_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	_sticky_row.add_child(sticky_label)
+	_sticky_spin = CopilotMd3SpinField.new()
+	_sticky_spin.configure(_scheme, 1, 1, 100)
+	_sticky_spin.tooltip_text = "Number of requests per key before switching"
+	_sticky_spin.value_changed.connect(_on_sticky_count_changed)
+	_sticky_row.add_child(_sticky_spin)
+
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	keys_tab.add_child(actions)
 	var add_key_button := CopilotMd3Button.new()
 	add_key_button.configure(_scheme, CopilotMd3Button.VARIANT_TONAL, "Add key", "add")
+	add_key_button.set_compact(true)
 	add_key_button.tooltip_text = "Add a new API key"
 	add_key_button.pressed.connect(_on_add_key_pressed)
 	actions.add_child(add_key_button)
 	_test_all_button = CopilotMd3Button.new()
-	_test_all_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED, "Test all")
+	_test_all_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED, "Test all", "refresh")
+	_test_all_button.set_compact(true)
 	_test_all_button.tooltip_text = "Tests every key one by one"
 	_test_all_button.pressed.connect(_on_test_all_pressed)
 	actions.add_child(_test_all_button)
+	var actions_spacer := Control.new()
+	actions_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	actions.add_child(actions_spacer)
 	_stop_test_button = CopilotMd3Button.new()
 	_stop_test_button.configure(_scheme, CopilotMd3Button.VARIANT_TEXT, "Stop", "stop")
+	_stop_test_button.set_compact(true)
 	_stop_test_button.tooltip_text = "Stop the test queue"
 	_stop_test_button.visible = false
 	_stop_test_button.pressed.connect(_on_stop_test_pressed)
 	actions.add_child(_stop_test_button)
 
-	var strategy_row := HBoxContainer.new()
-	strategy_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
-	keys_tab.add_child(strategy_row)
-	_round_robin_switch = CopilotMd3Switch.new()
-	_round_robin_switch.configure(_scheme, false)
-	_round_robin_switch.tooltip_text = "When off, a single key is reused for 'sticky count' requests in a row"
-	_round_robin_switch.toggled.connect(_on_round_robin_toggled)
-	strategy_row.add_child(_round_robin_switch)
-	var strategy_label := Label.new()
-	strategy_label.text = "Round-robin (rotate on every request)"
-	strategy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	CopilotMd3Tokens.apply_text(strategy_label, "body-medium")
-	strategy_label.add_theme_color_override("font_color", _scheme.color("on-surface"))
-	strategy_row.add_child(strategy_label)
-	_sticky_box = HBoxContainer.new()
-	_sticky_box.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
-	strategy_row.add_child(_sticky_box)
-	var sticky_label := Label.new()
-	sticky_label.text = "Sticky count"
-	sticky_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	CopilotMd3Tokens.apply_text(sticky_label, "body-medium")
-	sticky_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
-	_sticky_box.add_child(sticky_label)
-	_sticky_spin = CopilotMd3SpinField.new()
-	_sticky_spin.configure(_scheme, 1, 1, 100)
-	_sticky_spin.tooltip_text = "Number of requests per key before switching"
-	_sticky_spin.value_changed.connect(_on_sticky_count_changed)
-	_sticky_box.add_child(_sticky_spin)
-
 func _build_models_tab() -> void:
 	var models_tab := VBoxContainer.new()
 	models_tab.name = "Models"
-	models_tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
+	models_tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
 	_tabs.add_child(models_tab)
 
 	var active_row := HBoxContainer.new()
@@ -284,11 +376,13 @@ func _build_models_tab() -> void:
 	var active_label := Label.new()
 	active_label.text = "Active model"
 	active_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	active_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	CopilotMd3Tokens.apply_text(active_label, "body-medium")
 	active_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
 	active_row.add_child(active_label)
 	_active_model_button = CopilotMd3Button.new()
 	_active_model_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED)
+	_active_model_button.set_compact(true)
 	_active_model_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_active_model_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_active_model_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -310,48 +404,55 @@ func _build_models_tab() -> void:
 	_models_list.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	scroll.add_child(_models_list)
 
+	_models_empty = Label.new()
+	_models_empty.text = "No models yet — import them from the endpoint or add one manually."
+	_models_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_models_empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CopilotMd3Tokens.apply_text(_models_empty, "body-small")
+	_models_empty.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	models_tab.add_child(_models_empty)
+
+	_models_status = Label.new()
+	_models_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_models_status.visible = false
+	_models_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CopilotMd3Tokens.apply_text(_models_status, "body-small")
+	_models_status.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
+	models_tab.add_child(_models_status)
+
+	models_tab.add_child(_divider())
+
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("xs"))
 	models_tab.add_child(actions)
 	_import_button = CopilotMd3Button.new()
 	_import_button.configure(_scheme, CopilotMd3Button.VARIANT_TONAL, "Import", "download")
+	_import_button.set_compact(true)
 	_import_button.tooltip_text = "Fetch the model list from the provider endpoint"
 	_import_button.pressed.connect(_on_import_models_pressed)
 	actions.add_child(_import_button)
 	var add_model_button := CopilotMd3Button.new()
-	add_model_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED, "Add model", "add")
+	add_model_button.configure(_scheme, CopilotMd3Button.VARIANT_OUTLINED, "Add", "add")
+	add_model_button.set_compact(true)
 	add_model_button.tooltip_text = "Add a model manually"
 	add_model_button.pressed.connect(_on_add_model_pressed)
 	actions.add_child(add_model_button)
-	var disable_all_button := CopilotMd3Button.new()
-	disable_all_button.configure(_scheme, CopilotMd3Button.VARIANT_TEXT, "Disable all", "remove_done")
-	disable_all_button.tooltip_text = "Hide all models from the picker"
-	disable_all_button.pressed.connect(func() -> void:
-		config.set_all_models_disabled(_selected, true)
-		_refresh_models()
-		providers_changed.emit()
-	)
+	var actions_spacer := Control.new()
+	actions_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	actions.add_child(actions_spacer)
+	var disable_all_button := CopilotMd3IconButton.new()
+	disable_all_button.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", "remove_done")
+	disable_all_button.set_compact(true)
+	disable_all_button.tooltip_text = "Hide every model from the picker"
+	disable_all_button.pressed.connect(_on_disable_all_models_pressed)
 	actions.add_child(disable_all_button)
-	var enable_all_button := CopilotMd3Button.new()
-	enable_all_button.configure(_scheme, CopilotMd3Button.VARIANT_TEXT, "Enable all", "done_all")
-	enable_all_button.tooltip_text = "Show all models in the picker"
-	enable_all_button.pressed.connect(func() -> void:
-		config.set_all_models_disabled(_selected, false)
-		_refresh_models()
-		providers_changed.emit()
-	)
+	var enable_all_button := CopilotMd3IconButton.new()
+	enable_all_button.configure(_scheme, CopilotMd3IconButton.VARIANT_STANDARD, "", "done_all")
+	enable_all_button.set_compact(true)
+	enable_all_button.tooltip_text = "Show every model in the picker"
+	enable_all_button.pressed.connect(_on_enable_all_models_pressed)
 	actions.add_child(enable_all_button)
-
-	_models_status = Label.new()
-	_models_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	CopilotMd3Tokens.apply_text(_models_status, "body-small")
-	_models_status.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
-	models_tab.add_child(_models_status)
-
-	_model_menu = CopilotMd3Menu.new()
-	add_child(_model_menu)
-	_model_menu.configure(_scheme, true)
-	_model_menu.item_selected.connect(_on_model_menu_selected)
 
 func _build_advanced_tab() -> void:
 	var advanced_tab := VBoxContainer.new()
@@ -368,13 +469,14 @@ func _build_advanced_tab() -> void:
 	grid.add_child(_form_label("Kind"))
 	_kind_value = Label.new()
 	_kind_value.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_kind_value.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	CopilotMd3Tokens.apply_text(_kind_value, "body-medium")
 	_kind_value.add_theme_color_override("font_color", _scheme.color("on-surface"))
 	grid.add_child(_kind_value)
 
 	grid.add_child(_form_label("Base URL"))
 	_base_url_edit = CopilotMd3TextField.new()
-	_base_url_edit.configure(_scheme, "https://api.example.com/v1", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_base_url_edit.configure(_scheme, "https://api.example.com/v1", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	_base_url_edit.text_submitted.connect(func(_text: String) -> void: _save_base_url())
 	_base_url_edit.focus_exited.connect(_save_base_url)
 	grid.add_child(_base_url_edit)
@@ -382,18 +484,22 @@ func _build_advanced_tab() -> void:
 	grid.add_child(_form_label("API Type"))
 	_api_type_segments = CopilotMd3SegmentedButtons.new()
 	_api_type_segments.configure(_scheme, PackedStringArray(["chat_completions", "responses"]))
+	_api_type_segments.set_compact(true)
 	_api_type_segments.item_selected.connect(_on_api_type_selected)
 	grid.add_child(_api_type_segments)
 
 	grid.add_child(_form_label("Model Prefix"))
 	_prefix_edit = CopilotMd3TextField.new()
-	_prefix_edit.configure(_scheme, "(optional)", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_prefix_edit.configure(_scheme, "(optional)", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	_prefix_edit.text_submitted.connect(func(_text: String) -> void: _save_prefix())
 	_prefix_edit.focus_exited.connect(_save_prefix)
 	grid.add_child(_prefix_edit)
 
+	advanced_tab.add_child(_divider())
 	var hint := Label.new()
-	hint.text = "Base URL / API Type / Prefix changes are saved automatically."
+	hint.text = "Base URL, API Type and Model Prefix changes are saved automatically."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	CopilotMd3Tokens.apply_text(hint, "body-small")
 	hint.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
 	advanced_tab.add_child(hint)
@@ -402,17 +508,22 @@ func _form_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	CopilotMd3Tokens.apply_text(label, "label-medium")
 	label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
 	return label
+
+func _divider() -> CopilotMd3Divider:
+	var divider := CopilotMd3Divider.new()
+	divider.configure(_scheme)
+	return divider
 
 # --- Provider list ---
 
 func _refresh_providers() -> void:
 	if _provider_list == null or config == null:
 		return
-	for child in _provider_list.get_children():
-		child.queue_free()
+	_clear_list(_provider_list)
 	var names := config.get_provider_names()
 	names.sort()
 	if _selected.is_empty() or not config.has_provider(_selected):
@@ -441,28 +552,30 @@ func _on_provider_row_pressed(provider_name: String) -> void:
 	_refresh_providers()
 
 func _refresh_detail() -> void:
-	_models_status.text = ""
-	if _selected.is_empty() or config == null or not config.has_provider(_selected):
-		_detail_title.text = "No providers yet"
-		_detail_url.text = "Add a provider with the Add button."
-		_detail_key_url_button.visible = false
-		_clear_list(_keys_list)
-		_clear_list(_models_list)
-		_kind_value.text = "-"
-		_round_robin_switch.disabled = true
-		_base_url_edit.text = ""
-		_prefix_edit.text = ""
-		_api_type_segments.set_item_disabled(0, true)
-		_api_type_segments.set_item_disabled(1, true)
-		_active_model_button.text = "(no active model yet)"
-		_active_model_button.disabled = true
+	if _detail_header == null or config == null:
 		return
-	_round_robin_switch.disabled = false
+	if _models_status != null:
+		_models_status.text = ""
+		_models_status.visible = false
+	var has_provider := not _selected.is_empty() and config.has_provider(_selected)
+	_detail_header.visible = has_provider
+	_detail_content.visible = has_provider
+	_detail_empty.visible = not has_provider
+	if not has_provider:
+		_detail_title.text = ""
+		_detail_meta.text = ""
+		return
 	_detail_title.text = _selected
+	_detail_title.tooltip_text = _selected
 	var base_url := config.get_base_url(_selected)
-	_detail_url.text = base_url if not base_url.is_empty() else "(base URL not set yet)"
-	var key_url := CopilotProviderPresets.key_url_for(_selected)
-	_detail_key_url_button.visible = not key_url.is_empty()
+	var kind := config.get_provider_kind(_selected)
+	var parts: Array[String] = []
+	parts.append(base_url if not base_url.is_empty() else "no base URL")
+	parts.append(kind)
+	if kind != "anthropic":
+		parts.append(config.get_api_type(_selected))
+	_detail_meta.text = "  ·  ".join(PackedStringArray(parts))
+	_detail_meta.tooltip_text = _detail_meta.text
 	_refresh_keys()
 	_refresh_models()
 	_refresh_advanced()
@@ -472,6 +585,7 @@ func _refresh_keys() -> void:
 		return
 	_clear_list(_keys_list)
 	var keys := config.get_api_keys(_selected)
+	_keys_empty.visible = keys.is_empty()
 	for i in range(keys.size()):
 		var entry: Dictionary = keys[i] if keys[i] is Dictionary else {}
 		var row := CopilotKeyRow.new()
@@ -489,7 +603,8 @@ func _refresh_keys() -> void:
 		row.move_requested.connect(_on_key_move_requested)
 		row.edit_requested.connect(_on_key_edit_requested)
 		row.remove_requested.connect(_on_key_remove_requested)
-	_round_robin_switch.set_checked(config.get_key_strategy(_selected) == CopilotConfig.STRATEGY_ROUND_ROBIN)
+	var round_robin := config.get_key_strategy(_selected) == CopilotConfig.STRATEGY_ROUND_ROBIN
+	_strategy_segments.select(0 if round_robin else 1)
 	_sticky_spin.set_value(config.get_sticky_count(_selected))
 	_update_sticky_visibility()
 	_update_test_buttons()
@@ -522,6 +637,7 @@ func _refresh_models() -> void:
 		)
 		row.active_toggled.connect(_on_model_active_toggled)
 		row.remove_requested.connect(_on_model_remove_requested)
+	_models_empty.visible = active_keys.is_empty() and disabled_keys.is_empty()
 	_refresh_active_model_options()
 
 func _refresh_active_model_options() -> void:
@@ -537,6 +653,7 @@ func _refresh_active_model_options() -> void:
 				label = str(entry.get("display_name", current))
 				break
 	_active_model_button.text = label
+	_active_model_button.tooltip_text = "Model Copilot uses for chat: " + label
 	_active_model_button.disabled = available.is_empty()
 
 func _refresh_advanced() -> void:
@@ -552,11 +669,14 @@ func _clear_list(list: VBoxContainer) -> void:
 	if list == null:
 		return
 	for child in list.get_children():
+		list.remove_child(child)
 		child.queue_free()
 
 # --- Add/remove provider ---
 
 func _on_add_pressed() -> void:
+	if config == null:
+		return
 	_add_menu.popup_on(_add_button)
 
 func _on_add_menu_selected(id: int) -> void:
@@ -577,6 +697,23 @@ func _on_add_menu_selected(id: int) -> void:
 	_selected = provider_name
 	_refresh_providers()
 	providers_changed.emit()
+
+func _on_detail_menu_pressed() -> void:
+	if _selected.is_empty() or config == null:
+		return
+	_detail_menu.clear_items()
+	if not CopilotProviderPresets.key_url_for(_selected).is_empty():
+		_detail_menu.add_item("Open API key page", DETAIL_OPEN_KEY_URL, "open_in_new")
+		_detail_menu.add_separator()
+	_detail_menu.add_item("Delete provider…", DETAIL_DELETE_PROVIDER, "delete", "", true)
+	_detail_menu.popup_on(_detail_menu_button)
+
+func _on_detail_menu_selected(id: int) -> void:
+	match id:
+		DETAIL_OPEN_KEY_URL:
+			_on_open_key_url_pressed()
+		DETAIL_DELETE_PROVIDER:
+			_on_remove_provider_pressed()
 
 func _open_wizard(preset: Dictionary) -> void:
 	var wizard := CopilotProviderWizard.new()
@@ -696,10 +833,10 @@ func _on_add_key_pressed() -> void:
 	editor.canceled.connect(func() -> void: editor.queue_free())
 	editor.open_for(-1, {})
 
-func _on_round_robin_toggled(pressed: bool) -> void:
+func _on_strategy_selected(index: int) -> void:
 	if _selected.is_empty():
 		return
-	config.set_key_strategy(_selected, CopilotConfig.STRATEGY_ROUND_ROBIN if pressed else CopilotConfig.STRATEGY_STICKY_COUNT)
+	config.set_key_strategy(_selected, CopilotConfig.STRATEGY_ROUND_ROBIN if index == 0 else CopilotConfig.STRATEGY_STICKY_COUNT)
 	_update_sticky_visibility()
 
 func _on_sticky_count_changed(value: int) -> void:
@@ -707,8 +844,8 @@ func _on_sticky_count_changed(value: int) -> void:
 		config.set_sticky_count(_selected, value)
 
 func _update_sticky_visibility() -> void:
-	if _sticky_box != null:
-		_sticky_box.visible = not _round_robin_switch.is_checked()
+	if _sticky_row != null:
+		_sticky_row.visible = _strategy_segments != null and _strategy_segments.get_selected() == 1
 
 # --- Test key ---
 
@@ -866,6 +1003,20 @@ func _on_add_model_pressed() -> void:
 	editor.canceled.connect(func() -> void: editor.queue_free())
 	editor.open_for("", "", {})
 
+func _on_enable_all_models_pressed() -> void:
+	if _selected.is_empty():
+		return
+	config.set_all_models_disabled(_selected, false)
+	_refresh_models()
+	providers_changed.emit()
+
+func _on_disable_all_models_pressed() -> void:
+	if _selected.is_empty():
+		return
+	config.set_all_models_disabled(_selected, true)
+	_refresh_models()
+	providers_changed.emit()
+
 func _on_import_models_pressed() -> void:
 	if _selected.is_empty() or _testing_import:
 		return
@@ -876,7 +1027,7 @@ func _import_models() -> void:
 	_import_button.disabled = true
 	_import_progress.visible = true
 	_import_progress.start()
-	_models_status.text = "Importing models from /models…"
+	_set_models_status("Importing models from /models…")
 	var base := config.get_base_url(_selected).trim_suffix("/")
 	if base.ends_with("/chat/completions"):
 		base = base.trim_suffix("/chat/completions")
@@ -898,7 +1049,7 @@ func _import_models() -> void:
 	if err != OK:
 		request.queue_free()
 		_finish_import()
-		_models_status.text = "Import failed: the request could not be started."
+		_set_models_status("Import failed: the request could not be started.")
 		return
 	var response: Array = await request.request_completed
 	request.queue_free()
@@ -923,28 +1074,42 @@ func _import_models() -> void:
 					imported += 1
 	_refresh_detail()
 	if imported > 0:
-		_models_status.text = "Imported " + str(imported) + " models."
+		_set_models_status("Imported " + str(imported) + " models.")
 		providers_changed.emit()
 	else:
-		_models_status.text = "Import failed: no models were returned by the endpoint."
+		_set_models_status("Import failed: no models were returned by the endpoint.")
+
+func _set_models_status(text: String) -> void:
+	if _models_status == null:
+		return
+	_models_status.text = text
+	_models_status.visible = not text.is_empty()
 
 func _finish_import() -> void:
 	_testing_import = false
-	_import_button.disabled = false
-	_import_progress.stop()
-	_import_progress.visible = false
+	if _import_button != null:
+		_import_button.disabled = false
+	if _import_progress != null:
+		_import_progress.stop()
+		_import_progress.visible = false
 
 # --- Advanced ---
 
 func _save_base_url() -> void:
-	if _selected.is_empty():
+	if _selected.is_empty() or _base_url_edit == null:
 		return
 	config.set_base_url(_selected, _base_url_edit.text)
 	var base_url := config.get_base_url(_selected)
-	_detail_url.text = base_url if not base_url.is_empty() else "(base URL not set yet)"
+	var parts: Array[String] = []
+	parts.append(base_url if not base_url.is_empty() else "no base URL")
+	parts.append(config.get_provider_kind(_selected))
+	if config.get_provider_kind(_selected) != "anthropic":
+		parts.append(config.get_api_type(_selected))
+	_detail_meta.text = "  ·  ".join(PackedStringArray(parts))
+	_detail_meta.tooltip_text = _detail_meta.text
 
 func _save_prefix() -> void:
-	if _selected.is_empty():
+	if _selected.is_empty() or _prefix_edit == null:
 		return
 	config.set_model_prefix(_selected, _prefix_edit.text)
 
@@ -952,3 +1117,4 @@ func _on_api_type_selected(index: int) -> void:
 	if _selected.is_empty():
 		return
 	config.set_api_type(_selected, "responses" if index == 1 else "chat_completions")
+	_save_base_url()

@@ -23,6 +23,7 @@ func _ready() -> void:
 	super._ready()
 	configure(_scheme, "Add Provider", "Create", "Cancel")
 	dialog_hide_on_ok = false
+	set_preferred_size(Vector2i(520, 0))
 	confirmed.connect(_on_confirmed)
 	_build_fields()
 
@@ -62,39 +63,41 @@ func _build_fields() -> void:
 
 	grid.add_child(_field_label("Provider Name"))
 	_name_edit = CopilotMd3TextField.new()
-	_name_edit.configure(_scheme, "e.g. MyServer", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_name_edit.configure(_scheme, "e.g. MyServer", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_name_edit)
 
 	grid.add_child(_field_label("Kind"))
 	_kind_segments = CopilotMd3SegmentedButtons.new()
 	_kind_segments.configure(_scheme, PackedStringArray(["OpenAI-compatible", "Anthropic Messages API"]))
+	_kind_segments.set_compact(true)
 	_kind_segments.item_selected.connect(func(_index: int) -> void: _update_api_type_state())
 	grid.add_child(_kind_segments)
 
 	grid.add_child(_field_label("Base URL"))
 	_base_url_edit = CopilotMd3TextField.new()
-	_base_url_edit.configure(_scheme, "https://api.example.com/v1", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_base_url_edit.configure(_scheme, "https://api.example.com/v1", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_base_url_edit)
 
 	grid.add_child(_field_label("API Type"))
 	_api_type_segments = CopilotMd3SegmentedButtons.new()
 	_api_type_segments.configure(_scheme, PackedStringArray(["chat_completions", "responses"]))
+	_api_type_segments.set_compact(true)
 	grid.add_child(_api_type_segments)
 
 	grid.add_child(_field_label("Model Prefix"))
 	_prefix_edit = CopilotMd3TextField.new()
-	_prefix_edit.configure(_scheme, "(optional) prepended to model names", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_prefix_edit.configure(_scheme, "(optional) prepended to model names", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_prefix_edit)
 
 	grid.add_child(_field_label("API Key"))
 	_api_key_edit = CopilotMd3TextField.new()
 	_api_key_edit.secret = true
-	_api_key_edit.configure(_scheme, "(optional) first key", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_api_key_edit.configure(_scheme, "(optional) first key", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_api_key_edit)
 
 	grid.add_child(_field_label("Model ID"))
 	_model_id_edit = CopilotMd3TextField.new()
-	_model_id_edit.configure(_scheme, "(optional) e.g. gpt-4o", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_model_id_edit.configure(_scheme, "(optional) e.g. gpt-4o", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_model_id_edit)
 
 	_error_label = Label.new()
@@ -106,6 +109,7 @@ func _build_fields() -> void:
 
 	_key_url_button = CopilotMd3Button.new()
 	_key_url_button.configure(_scheme, CopilotMd3Button.VARIANT_TEXT, "Get API key", "open_in_new")
+	_key_url_button.set_compact(true)
 	_key_url_button.tooltip_text = "Opens the provider's API key page in the browser"
 	_key_url_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_key_url_button.pressed.connect(func() -> void:

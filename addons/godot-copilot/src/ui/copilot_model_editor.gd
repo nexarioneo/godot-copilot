@@ -18,6 +18,7 @@ func _ready() -> void:
 	super._ready()
 	configure(_scheme, "Model", "Save", "Cancel")
 	dialog_hide_on_ok = false
+	set_preferred_size(Vector2i(480, 0))
 	confirmed.connect(_on_confirmed)
 	_build_fields()
 
@@ -44,12 +45,12 @@ func _build_fields() -> void:
 
 	grid.add_child(_field_label("Model ID"))
 	_id_edit = CopilotMd3TextField.new()
-	_id_edit.configure(_scheme, "e.g. gpt-4o", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_id_edit.configure(_scheme, "e.g. gpt-4o", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_id_edit)
 
 	grid.add_child(_field_label("Display Name"))
 	_name_edit = CopilotMd3TextField.new()
-	_name_edit.configure(_scheme, "(optional)", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_name_edit.configure(_scheme, "(optional)", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_name_edit)
 
 	grid.add_child(_field_label("Capabilities"))

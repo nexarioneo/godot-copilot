@@ -17,6 +17,7 @@ func _ready() -> void:
 	super._ready()
 	configure(_scheme, "API Key", "Save", "Cancel")
 	dialog_hide_on_ok = false
+	set_preferred_size(Vector2i(480, 0))
 	confirmed.connect(_on_confirmed)
 	_build_fields()
 
@@ -41,13 +42,13 @@ func _build_fields() -> void:
 
 	grid.add_child(_field_label("Label"))
 	_label_edit = CopilotMd3TextField.new()
-	_label_edit.configure(_scheme, "e.g. Primary key", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_label_edit.configure(_scheme, "e.g. Primary key", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_label_edit)
 
 	grid.add_child(_field_label("Key Value"))
 	_value_edit = CopilotMd3TextField.new()
 	_value_edit.secret = true
-	_value_edit.configure(_scheme, "sk-...", CopilotMd3TextField.VARIANT_OUTLINED, 48)
+	_value_edit.configure(_scheme, "sk-...", CopilotMd3TextField.VARIANT_OUTLINED, CopilotMd3Tokens.TARGET_DIALOG_FIELD)
 	grid.add_child(_value_edit)
 
 	grid.add_child(_field_label("Status"))
