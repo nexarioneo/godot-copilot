@@ -13,6 +13,7 @@ const ACTION_HEIGHT := 40
 const ACTION_MIN_WIDTH := 72
 const HOVER_OPACITY := 0.08
 const PRESSED_OPACITY := 0.10
+const EDGE_MARGIN := 8
 
 var _scheme: CopilotMd3Scheme = null
 var _body: VBoxContainer = null
@@ -78,10 +79,15 @@ func _ready() -> void:
 		_scheme = CopilotMd3Scheme.for_node(self)
 	_build_body()
 	_apply()
+	_clamp_to_editor()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_THEME_CHANGED:
 		sync_scheme()
+	elif what == NOTIFICATION_VISIBILITY_CHANGED and visible:
+		# The editor area can change between popups (rotation, resized docks);
+		# re-measure before every show so the clamp stays correct.
+		_clamp_to_editor()
 
 func _build_body() -> void:
 	if _body != null:
@@ -114,6 +120,26 @@ func _apply() -> void:
 	ok_button_text = _ok_label
 	_style_action(get_ok_button(), _ok_variant)
 	_style_action(_cancel_button, CopilotMd3Button.VARIANT_TEXT)
+
+func _clamp_to_editor() -> void:
+	# The editor area can be smaller than the dialog's own content minimum (a
+	# phone in landscape, for example). Without a maximum the embedded window
+	# grows past the visible editor, the engine places the action buttons below
+	# the clipped bottom edge and the dialog cannot be closed. Window applies
+	# the maximum after the content minimum, so the buttons stay reachable and
+	# tall pages scroll instead of pushing the window off screen.
+	if not Engine.is_editor_hint():
+		return
+	var base := EditorInterface.get_base_control()
+	if base == null:
+		return
+	var limit := Vector2i(base.get_global_rect().size) - Vector2i(EDGE_MARGIN * 2, EDGE_MARGIN * 2)
+	if limit.x <= 0 or limit.y <= 0:
+		return
+	# A minimum larger than the maximum disables the clamp entirely, so the
+	# minimum is pulled down first when the screen cannot fit it.
+	min_size = Vector2i(mini(min_size.x, limit.x), mini(min_size.y, limit.y))
+	max_size = limit
 
 func _style_action(button: Button, variant: String) -> void:
 	if button == null:
@@ -166,6 +192,8 @@ func _action_box(fill_color: Color, radius: int) -> StyleBoxFlat:
 func _action_focus_box(radius: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.draw_center = false
+	if not CopilotMd3Tokens.focus_ring_visible():
+		return sb
 	sb.set_border_width_all(CopilotMd3Tokens.FOCUS_RING_WIDTH)
 	sb.border_color = _scheme.color("primary")
 	sb.set_corner_radius_all(radius)

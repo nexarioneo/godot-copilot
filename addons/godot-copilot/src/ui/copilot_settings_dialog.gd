@@ -8,6 +8,7 @@ extends CopilotMd3Dialog
 signal settings_changed()
 
 const RULE_LIST_NAMES: Array[String] = ["deny", "ask", "allow"]
+const LIST_MIN_HEIGHT := 140
 const PRESET_ENTRIES := [
 	["Sandbox — free inside the project", "Actions outside the project ask for permission."],
 	["Review — always asks for permission", "Every action asks unless an Allow rule already grants it."],
@@ -117,11 +118,27 @@ func _build_ui() -> void:
 	_build_memory_tab(tabs)
 	_build_agent_tab(tabs)
 
+func _make_page(tabs: CopilotMd3Tabs, page_name: String) -> VBoxContainer:
+	# Pages sit inside a vertical ScrollContainer so the dialog minimum stays
+	# small enough to fit a narrow editor instead of pushing the action buttons
+	# off screen. TabContainer uses the child's name as the tab title, so the
+	# scroll container carries it.
+	var scroll := ScrollContainer.new()
+	scroll.name = page_name
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.add_child(scroll)
+	var page := VBoxContainer.new()
+	page.name = page_name + "Page"
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
+	scroll.add_child(page)
+	return page
+
 func _build_permissions_tab(tabs: CopilotMd3Tabs) -> void:
-	var tab := VBoxContainer.new()
-	tab.name = "Permissions"
-	tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
-	tabs.add_child(tab)
+	var tab := _make_page(tabs, "Permissions")
 
 	tab.add_child(_form_label("Preset"))
 	for i in range(PRESET_ENTRIES.size()):
@@ -150,6 +167,7 @@ func _build_permissions_tab(tabs: CopilotMd3Tabs) -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, LIST_MIN_HEIGHT)
 	tab.add_child(scroll)
 	_rules_list = VBoxContainer.new()
 	_rules_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -177,10 +195,7 @@ func _build_permissions_tab(tabs: CopilotMd3Tabs) -> void:
 	tab.add_child(_rule_error_label)
 
 func _build_memory_tab(tabs: CopilotMd3Tabs) -> void:
-	var tab := VBoxContainer.new()
-	tab.name = "Memory"
-	tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
-	tabs.add_child(tab)
+	var tab := _make_page(tabs, "Memory")
 
 	_memory_auto_switch = _toggle_row(tab, "Automatically compact the conversation as the context grows", "Runs compaction once the number of new steps exceeds the limit")
 	_memory_auto_switch.toggled.connect(func(pressed: bool) -> void: _save_memory_value("auto", pressed))
@@ -225,10 +240,7 @@ func _build_memory_tab(tabs: CopilotMd3Tabs) -> void:
 	tab.add_child(_hint_label("The 'native' mode never builds manual summaries; the provider fully manages the context."))
 
 func _build_agent_tab(tabs: CopilotMd3Tabs) -> void:
-	var tab := VBoxContainer.new()
-	tab.name = "Agent"
-	tab.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
-	tabs.add_child(tab)
+	var tab := _make_page(tabs, "Agent")
 
 	var steps_row := HBoxContainer.new()
 	steps_row.add_theme_constant_override("separation", CopilotMd3Tokens.spacing("s"))
@@ -254,6 +266,7 @@ func _build_agent_tab(tabs: CopilotMd3Tabs) -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, LIST_MIN_HEIGHT)
 	tab.add_child(scroll)
 	_subagent_list = VBoxContainer.new()
 	_subagent_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
