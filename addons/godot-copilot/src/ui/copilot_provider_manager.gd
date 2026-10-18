@@ -63,6 +63,11 @@ func setup(p_config: CopilotConfig) -> void:
 	_build_ui()
 	_refresh_providers()
 
+func refresh() -> void:
+	# Called by the plugin right before the dialog is shown again, so the
+	# lists pick up changes made elsewhere (e.g. the active model picker).
+	_refresh_providers()
+
 # --- Build UI ---
 
 func _build_ui() -> void:

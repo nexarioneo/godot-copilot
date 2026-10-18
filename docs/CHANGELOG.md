@@ -27,6 +27,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
   `CopilotMd3Snackbar` (inline rise/fall reveal, 4s auto-dismiss),
   `CopilotMd3ToolRow` (collapsible tool call row with output block) and
   `CopilotMd3Composer` (autogrowing pill input, Enter to send).
+- **Material 3 dialog components** (`src/ui/md3/`): `CopilotMd3Dialog`
+  (restyled `AcceptDialog`), `CopilotMd3Confirm`, `CopilotMd3Menu`,
+  `CopilotMd3Tabs`, `CopilotMd3Switch`, `CopilotMd3Radio`,
+  `CopilotMd3SegmentedButtons`, `CopilotMd3LinearProgress` and
+  `CopilotMd3SpinField` (stepped numeric field); `CopilotMd3ListItem` gained a
+  dense mode, an optional leading slot, mono title/subtitle options and a
+  content-role override.
 - **Retry last turn**: `CopilotAgent.retry_last_turn()` +
   `CopilotSessionStore.trim_after_last_user()` re-run the last exchange; the
   assistant message card exposes a Retry action.
@@ -47,8 +54,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   Allow once: Allow once grants nothing, the checkbox turns Allow into a session
   grant, and Always allow writes a permanent rule.
 - Chat rendering keeps the `add_text()`-only rule (no BBCode evaluation) and the
-  pinned-to-bottom auto-scroll; the sessions menu uses a styled `PopupMenu` until
-  `CopilotMd3Menu` lands in the dialogs phase.
+  pinned-to-bottom auto-scroll; the sessions menu now uses `CopilotMd3Menu`.
+- **Provider manager, settings dialog, and confirmations rebuilt on the Material 3
+  system**: provider list rows (logo badge, active check), key rows (leading
+  switch, masked value, status chip/spinner, reveal/test/move/edit/delete), model
+  rows (switch, mono id, capability hints, dimmed when disabled), the provider
+  wizard and key/model editors (`CopilotMd3Dialog` with inline validation), the
+  Add-provider preset menu, the searchable active-model picker, the import
+  progress bar, the round-robin switch and sticky-count spin field, the settings
+  dialog (three preset radios, rule-list segmented control with counts,
+  memory/agent switches, segmented controls, spin fields, subagent model menu)
+  and the dock delete-session confirmation (`CopilotMd3Confirm`). Both dialogs
+  refresh their state when reopened.
 - **Chat surfaces reuse `CopilotMd3Card`**: user bubbles, assistant cards and
   notices configure role, padding and corner overrides (`set_roles`,
   `set_padding`, `set_corner_radii`) instead of building one-off styleboxes; the

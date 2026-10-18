@@ -73,14 +73,16 @@ section 4.
 ## 4. UI
 
 - UI is built **in code**; there are no `.tscn` files in the addon.
-- Colors & icons: UI built on the editor theme goes through `CopilotTheme` (a
-  fallback is mandatory); components in `src/ui/md3/` use the `CopilotMd3*`
-  design system (`CopilotMd3Scheme` / `CopilotMd3Motion` / `CopilotMd3Icons`)
-  instead — see DESIGN.md. The dock, chat view, and permission card are already
-  migrated; the dialogs migrate next, and `CopilotTheme` is retired at the end.
+- Colors & icons: the UI is built on the `CopilotMd3*` design system
+  (`src/ui/md3/`: tokens, scheme, motion, icons, components) — see DESIGN.md.
+  `CopilotTheme` is legacy: it is no longer referenced by any screen and is
+  retired together with the polish phase.
+- Compose screens from the reusable components in `src/ui/md3/` instead of
+  styling stock widgets per screen; check DESIGN.md section 4 for the catalog.
 - Every icon button requires `tooltip_text`.
-- Use native Godot base widgets (`Button`, `OptionButton`, `CheckButton`, `SpinBox`,
-  `LineEdit`, `TextEdit`, `Tree`/`ItemList` where appropriate).
+- When an existing component covers the need, extend it with a parameter/variant
+  instead of building a one-off widget; new stock-widget usage is limited to the
+  component layer itself.
 - UI classes may `extends` a widget; child construction happens in `_build_ui()`
   (called from `_ready`), not in `_init`.
 - Dynamic content in `RichTextLabel` uses `add_text()` (safe against BBCode);

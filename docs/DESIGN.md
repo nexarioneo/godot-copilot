@@ -246,10 +246,10 @@ General rules for every component in the library:
 
 ### 4.4 CopilotMd3TextField
 
-- Base: `VBoxContainer` wrapping a `LineEdit` (or `TextEdit` for multiline) with
-  M3 outlined text field geometry: 56px container, corner 4, 1px
-  `outline-variant` border, primary 2px on focus, floating label, supporting and
-  error text (body-small), 16px padding, optional leading/trailing icon.
+- Base: `LineEdit` with M3 geometry: outlined (`outline-variant` 1px border,
+  2px primary on focus, corner 4) or filled (surface-container-highest with a
+  bottom indicator turning primary/2dp on focus); fixed height (56 default, 48 in
+  dialogs, 40 in menus), 16px horizontal padding, body-large text, placeholder.
 - Used for: provider wizard fields, key/model editors, rule input, compaction
   model, search fields.
 
@@ -276,15 +276,15 @@ General rules for every component in the library:
 
 ### 4.7 CopilotMd3Menu
 
-- Base: `PopupMenu` with per-instance theme overrides: `surface-container` panel,
-  corner 4, 8px vertical padding, 48px items, label-large, on-surface 8% hover
-  layer, 1px `outline-variant` separators with 8px margins.
-- New sessions menu uses rich labels: title (label-large) + step count
-  (label-small, trailing, on-surface-variant), active session marked with a check
-  icon in primary.
-- Used for: sessions menu, add-provider preset menu, model picker, context menus.
-- Interim: the dock's sessions menu uses a styled `PopupMenu` with these
-  overrides until this component lands in the dialogs phase.
+- Base: `PopupPanel` with a `surface-container-high` panel (corner 4, elevation 2,
+  8px padding) holding dense 48px `CopilotMd3ListItem` rows, an optional 40px
+  outlined search field (searchable menus), `primary` check_circle for the current
+  item, error-colored danger items, and 1px `outline-variant` separators with 8px
+  margins. Keyboard: up/down/escape; the search field takes focus when present.
+- The sessions menu lists `title  (N steps)` rows, checks the current session and
+  appends a danger "Delete current session" item when a session is active.
+- Used for: sessions menu, add-provider preset menu, active-model picker,
+  subagent model picker, context menus.
 
 ### 4.8 CopilotMd3Tabs
 
@@ -303,11 +303,14 @@ General rules for every component in the library:
   primary) with 8px gaps, right-aligned.
 - Note: rounded corners render in embedded-window mode (Godot editor default);
   floating OS windows use native decoration.
+- `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
+  360px message label; `danger` switches the confirm button to the danger
+  variant (used for delete confirmations).
 - Used for: provider manager, settings, wizard, key/model editors, confirmations.
 
 ### 4.10 CopilotMd3Switch
 
-- Base: `CheckButton` with custom drawing: 52x32 track (corner full), 2px
+- Base: `Button` with custom drawing: 52x32 track (corner full), 2px
   outline when off, handle 16 (off) to 24 (on) with 28 pressed swell, 200ms
   motion; colors per MATERIAL3.md §9.12; label on-surface, 16px gap.
 - Used for: auto-compact, prune tool output, key strategy round-robin, model
@@ -319,7 +322,9 @@ General rules for every component in the library:
   box, corner 2, primary fill with an on-primary tick when checked, 2px
   on-surface-variant border otherwise, 40px circular state layer, label on the
   right; disabled uses 38% content / 12% container.
-- `CopilotMd3Radio` (20px, primary dot) lands with the dialogs phase.
+- `CopilotMd3Radio` (implemented): `Button` row with a 20px radio circle
+  (10px primary dot when selected), body-large title + optional body-small
+  supporting text; exclusivity is managed by the caller.
 - Used for: "Remember for this session", permissions preset selection (three
   radios with supporting text), model rows in dense lists (checkbox).
 
@@ -328,8 +333,9 @@ General rules for every component in the library:
 - `CopilotMd3Spinner` (implemented): circular indeterminate indicator drawn with
   `draw_arc`, 24px (thinking row) and 16px (tool rows) with scaled stroke width,
   ~1.33s rotation.
-- Linear progress (4px, sliding segment) is planned for imports and key tests in
-  the dialogs phase.
+- `CopilotMd3LinearProgress` (implemented): 4px track with a sliding segment
+  (`start()` / `stop()` / `set_value()` for determinate use), shown while
+  importing models.
 - Used for: thinking indicator, tool running state, model import, key testing.
 
 ### 4.13 CopilotMd3Snackbar
@@ -374,11 +380,13 @@ General rules for every component in the library:
 
 ### 4.18 CopilotMd3SegmentedButtons
 
-- Base: `HBoxContainer` of toggle `Button`s sharing a 1px outline, 40px height,
-  full (pill) outer corners, 8px gaps, selected segment `secondary-container` /
-  `on-secondary-container`.
-- Used for: provider kind (OpenAI / Anthropic), API type, permission rule mode
-  (Allow / Ask / Deny), memory mode (Text / Native).
+- Base: `PanelContainer` hosting an `HBoxContainer` of toggle `Button`s sharing a
+  1px outline, 40px height, full (pill) outer corners, 1px `outline-variant`
+  dividers between segments, selected segment `secondary-container` /
+  `on-secondary-container`; second tap on the selected index does not re-emit.
+- Used for: permission rule mode (Deny / Ask / Allow), memory mode (Text /
+  Native), provider kind (OpenAI / Anthropic), API type (chat_completions /
+  responses).
 
 ### 4.19 CopilotMd3ToolRow
 
@@ -401,6 +409,14 @@ General rules for every component in the library:
   while busy); the hint "Enter to send, Shift+Enter for a new line" shows while
   focused.
 - Used for: the dock composer only.
+
+### 4.21 CopilotMd3SpinField
+
+- Stepped numeric field: 40px outlined `CopilotMd3TextField` (min 96px wide) with
+  a stacked chevron stepper (expand_less / expand_more, 20px each) on the trailing
+  edge. Values clamp to `[min, max]` with a step; commits on stepper press, Enter
+  or focus loss and emits `value_changed` only when the value actually changes.
+- Used for: sticky key count, memory max steps / tail size, agent max steps.
 
 ---
 
@@ -553,44 +569,45 @@ composer:
 
 Layout unchanged (list left, detail right) with M3 components:
 
-- Dialog: `CopilotMd3Dialog`, min 900x560, title "Provider Manager",
-  headline-small.
+- Dialog: `CopilotMd3Dialog`, min 780x480 (initial 900x560), title "Provider
+  Manager", headline-small.
 - Left: `CopilotMd3ListItem` rows (56px): logo badge 28 (mono logos on a rounded
   white badge, colored logos as-is, fallback = initial letters), title = provider
-  name (body-large), supporting = "2 keys" / "No keys yet" (body-small). Selected
-  row = `secondary-container`; active provider shows a check_circle icon in
-  primary on the trailing edge.
+  name (body-large), supporting = "3 active keys" / "No keys yet" (body-small).
+  Selected row = `secondary-container`; active provider shows a check_circle icon
+  in primary on the trailing edge.
 - Left header: "Add" = `CopilotMd3Button` tonal with expand_more, opening
   `CopilotMd3Menu` (presets + "Custom provider..."); "Delete" = icon button
-  (delete) with a `CopilotMd3Dialog` confirmation.
+  (delete) with a `CopilotMd3Confirm` confirmation.
 - Right header: provider name (title-large) + base URL (body-small, mono for the
   host part); "Open API key page" outlined button with open_in_new.
 - Tabs: `CopilotMd3Tabs` (Keys / Models / Advanced).
-- Keys tab: list of `CopilotMd3ListItem` (2-line): leading switch/checkbox
-  (enabled), title = key label (body-large), supporting = masked value
-  (`sk-...abc1`, mono, body-small), trailing = test status chip (OK / Failed /
-  queued / testing spinner) + icon buttons (reveal visibility, reload, arrow_up,
-  arrow_down, edit, delete). Below: tonal "Add key", outlined "Test all", text
-  "Stop" (stop icon, only while testing); key strategy row: `CopilotMd3Switch`
-  (round robin) + sticky count spinbox (visible when on) with supporting text.
+- Keys tab: list of `CopilotMd3ListItem` (2-line): leading switch (enabled),
+  title = key label (body-large), supporting = masked value (`sk-...abc1`, mono,
+  body-small), trailing = test status chip (Valid / Failed / queued / testing
+  spinner) + icon buttons (reveal visibility, reload, arrow_up, arrow_down, edit,
+  delete). Below: tonal "Add key", outlined "Test all", text "Stop" (stop icon,
+  only while testing); key strategy row: `CopilotMd3Switch` (round robin) + sticky
+  count (`CopilotMd3SpinField`, visible when round robin is off).
 - Models tab: "Active model" row = outlined select button showing the current
   model, opening `CopilotMd3Menu` (search field inside the menu when the list is
   long). Model rows: `CopilotMd3ListItem` with leading switch (enabled; disabled
-  rows rendered last and dimmed), title = model id (body-large; mono when it looks
-  like an id), trailing delete. Header actions: import (tonal, download icon),
+  rows rendered last and dimmed), title = model id (mono), supporting = display
+  name plus `[vision, reasoning]` hints, trailing delete. Header actions: import
+  (tonal, download icon; a `CopilotMd3LinearProgress` shows while importing),
   "Add model" (outlined), "Enable all" / "Disable all" (text, done_all /
   remove_done icons).
-- Advanced tab: read-only info as label rows (kind, base_url, api_type,
-  model_prefix; keys label-medium on-surface-variant, values body-medium mono
-  where applicable).
+- Advanced tab: kind as a read-only label row; Base URL and Model Prefix as
+  outlined text fields; API Type as 2-segment `SegmentedButtons` (disabled for the
+  Anthropic kind). All fields save automatically; a body-small hint states this.
 - Wizard: `CopilotMd3Dialog` with outlined text fields (Name, Base URL, Model
   prefix, first key, first model), Kind as 2-segment `SegmentedButtons`
   (OpenAI / Anthropic), API type as 2-segment (chat completions / responses,
-  OpenAI kind only), "Get API key" text button with open_in_new, actions Cancel
-  (text) / Create (filled). Validation errors per field (outlined red + error
-  supporting text).
-- Key / model editors: small `CopilotMd3Dialog`s with outlined fields, Cancel
-  (text) / Save (filled).
+  disabled for the Anthropic kind), "Get API key" text button with open_in_new,
+  actions Cancel (text) / Create (filled). Validation errors use an error-colored
+  supporting label.
+- Key / model editors: small `CopilotMd3Dialog`s with outlined fields and
+  switches, Cancel (text) / Save (filled); errors use an error-colored label.
 
 ---
 
@@ -599,20 +616,21 @@ Layout unchanged (list left, detail right) with M3 components:
 `CopilotMd3Dialog`, min 560x480, tabs via `CopilotMd3Tabs`:
 
 1. **Permissions** — preset selection as three `CopilotMd3Radio` options with
-   supporting text (Sandbox / Review / Turbo). Rule editor: segmented control
-   (Allow / Ask / Deny) with counts, rule list (`CopilotMd3ListItem`, trailing
-   delete), and an add-rule row: outlined text field + filled icon button (add).
+   supporting text (Sandbox / Review / Turbo), plus a hint line that follows the
+   selected preset. Rule editor: segmented control (Deny / Ask / Allow) with
+   counts, rule list (`CopilotMd3ListItem`, trailing delete), and an add-rule row:
+   outlined text field + filled icon button (add).
 2. **Memory** — switches (`CopilotMd3Switch`): auto-compact, prune tool output;
    mode choice as segmented control (Text / Native); compaction model as outlined
-   text field (empty = active model); max steps and tail size as labeled spin
-   fields (stepped numeric field built from CopilotMd3TextField + icon buttons
-   when SpinBox styling is insufficient).
-3. **Agent** — max ReAct steps (numeric field), subagent override list rows
+   text field (empty = active model); max steps and tail size as labeled
+   `CopilotMd3SpinField`s.
+3. **Agent** — max ReAct steps (`CopilotMd3SpinField`), subagent override list rows
    (name + model select button opening `CopilotMd3Menu` + delete icon button),
-   empty state when no overrides ("No subagent overrides").
+   empty state when no overrides ("No subagent overrides yet."), and an add row
+   (name field + model select + add icon button) with inline validation.
 
 Dangerous actions (if added later, e.g. reset settings) use the danger button
-variant and a confirmation `CopilotMd3Dialog`.
+variant and a confirmation `CopilotMd3Confirm`.
 
 ---
 
@@ -709,13 +727,15 @@ icons never carry color alone (always paired with text or tooltip).
    Apache-2.0 license), curated Material Symbols SVGs.
 2. **Base components** (implemented): state layer, button, icon button, card,
    text field, chip, list item, divider, badge, tooltip.
-3. **Dock and chat** (implemented): header with the sessions menu (interim
-   styled `PopupMenu`), chat view (bubbles, cards, tool rows, streaming caret,
+3. **Dock and chat** (implemented): header with the sessions menu
+   (`CopilotMd3Menu`), chat view (bubbles, cards, tool rows, streaming caret,
    hover copy/retry), empty state, composer, status strip, snackbar, checkbox,
    circular spinner; permission card rebuilt per section 7.
-4. **Dialogs** (planned): provider manager (rows, tabs, menus, wizard, editors),
-   settings (radios, switches, segmented controls), dialogs base class, linear
-   progress for imports and key tests.
+4. **Dialogs** (implemented): dialog base (`CopilotMd3Dialog`), confirm
+   (`CopilotMd3Confirm`), tabs, menu, switch, radio, segmented buttons, linear
+   progress, spin field; provider manager (rows, tabs, menus, wizard, editors),
+   settings dialog (radios, switches, segmented controls), dock sessions menu and
+   delete confirmation.
 5. **Polish** (planned): message entrance motion (fade + rise), live light/dark
    re-apply for already rendered cards, overlay tooltips, visual checklist,
    retire `CopilotTheme` styling (keep light/dark detection + icon fallback).

@@ -138,6 +138,8 @@ func _on_open_provider_manager() -> void:
 		EditorInterface.get_base_control().add_child(_provider_manager)
 		_provider_manager.setup(_config)
 		_provider_manager.providers_changed.connect(_refresh_dock)
+	else:
+		_provider_manager.refresh()
 	_provider_manager.popup_centered()
 
 func _on_open_settings() -> void:
@@ -146,6 +148,8 @@ func _on_open_settings() -> void:
 		EditorInterface.get_base_control().add_child(_settings_dialog)
 		_settings_dialog.setup(_config)
 		_settings_dialog.settings_changed.connect(_refresh_dock)
+	else:
+		_settings_dialog.refresh()
 	_settings_dialog.popup_centered()
 
 func _on_focus_chat() -> void:
