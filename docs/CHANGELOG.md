@@ -112,10 +112,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   closed). Dialogs now set `max_size` to the editor rect before every show and
   the settings tab pages scroll, so the title, pages and Close button all stay
   reachable.
-- **Tab labels sinking into the indicator**: when the tab bar was squeezed below
-  its minimum height the engine baseline pushed the labels onto the 3px
-  indicator. Labels are now drawn by the component, centered in the area above
-  the indicator; the engine text stays for width measurement only.
+- **Tab indicator placed wrong**: the indicator the component draws landed 16px
+  left and 12px above the bar's bottom edge, because `TabBar.position` is
+  relative to the internal container the TabContainer keeps it in. It overlapped
+  the labels, which read as sunken tab text. Tab rects now include the ancestor
+  offsets of the internal container.
 - **Focus ring on touch screens**: the 2px primary ring is now suppressed on
   touch devices (buttons, icon buttons, dialog actions, chips, list items,
   segmented buttons, checkboxes and tabs). A tap left the ring drawn next to the

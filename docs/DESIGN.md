@@ -301,11 +301,11 @@ General rules for every component in the library:
   emphasized-decelerate) and the incoming page fades in (200ms,
   standard-decelerate). The indicator is drawn by the component (the selected
   tab stylebox carries no bottom border so the two do not double up).
-- Labels are drawn by the component too, vertically centered in the area above
-  the indicator; the engine keeps its own text with transparent colors for
-  width measurement only. That keeps labels readable when the bar is squeezed
-  (the engine baseline follows the stylebox margins and sinks into the
-  indicator when the bar drops below its minimum height).
+- Tab rects come from the internal `TabBar`, which the container keeps inside an
+  `HBoxContainer` offset by the tabbar style margins (16 left, 12 top in this
+  skin). The component adds those ancestor offsets before drawing, otherwise the
+  indicator lands 16px left and 12px above the bar's bottom edge and overlaps the
+  labels.
 - Used for: provider manager (Keys / Models / Advanced), settings (Permissions /
   Memory / Agent).
 
