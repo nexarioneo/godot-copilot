@@ -106,6 +106,26 @@ Versions follow [Semantic Versioning](https://semver.org/).
   and the width falls back to the scroll container when the column is not laid out.
 - **Font cache**: failed font lookups are no longer cached (a lookup that ran
   before the asset import finished used to hide Roboto for the whole session).
+- **Unclosable dialogs on short screens**: a dialog whose content minimum
+  exceeds the editor height used to grow past the visible area, which placed the
+  action buttons below the clipped bottom edge (the settings dialog could not be
+  closed). Dialogs now set `max_size` to the editor rect before every show and
+  the settings tab pages scroll, so the title, pages and Close button all stay
+  reachable.
+- **Tab labels sinking into the indicator**: when the tab bar was squeezed below
+  its minimum height the engine baseline pushed the labels onto the 3px
+  indicator. Labels are now drawn by the component, centered in the area above
+  the indicator; the engine text stays for width measurement only.
+- **Focus ring on touch screens**: the 2px primary ring is now suppressed on
+  touch devices (buttons, icon buttons, dialog actions, chips, list items,
+  segmented buttons, checkboxes and tabs). A tap left the ring drawn next to the
+  state layer, so a round icon button looked like two circles at once.
+- **Switch animation stutter**: toggling while the thumb was still animating
+  started a second tween that fought the first over the same progress value; a
+  new toggle now stops the running tween and continues from its position.
+- **Segmented buttons churn**: selection changes rebuilt five styleboxes and ten
+  color overrides per segment on every tap; the boxes are now created once and
+  only their colors change, with a redraw request.
 
 ---
 

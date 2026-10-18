@@ -191,6 +191,10 @@ is enabled (planned in Settings).
 - Keyboard focus additionally draws a 2px primary ring with 2px offset; focus is
   always visible on form controls, and the chat composer keeps a visible focus
   state.
+- On touch screens the ring is suppressed (`CopilotMd3Tokens.focus_ring_visible`):
+  a tap would otherwise leave a second outline (the ring) next to the state
+  layer, which reads as a stray extra circle. Text fields keep their own focus
+  border in every mode.
 - Disabled components: no state layers, content 38%, container 12%, skipped by
   keyboard navigation.
 
@@ -288,14 +292,20 @@ General rules for every component in the library:
 
 ### 4.8 CopilotMd3Tabs
 
-- Base: `TabContainer` with per-instance overrides: transparent tab bar, 48px
-  tab height, title-small labels, primary label on selected / on-surface-variant
-  otherwise, 3px primary indicator along the bottom of the selected tab, 1px
+- Base: `TabContainer` with per-instance overrides: transparent tab bar, about
+  40px tab height (12/11 stylebox margins around a label-large line),
+  label-large labels, primary label on selected / on-surface-variant otherwise,
+  3px primary indicator along the bottom of the selected tab, 1px
   `outline-variant` line under the whole bar.
 - Switching animates: the indicator slides between tab positions (250ms,
   emphasized-decelerate) and the incoming page fades in (200ms,
   standard-decelerate). The indicator is drawn by the component (the selected
   tab stylebox carries no bottom border so the two do not double up).
+- Labels are drawn by the component too, vertically centered in the area above
+  the indicator; the engine keeps its own text with transparent colors for
+  width measurement only. That keeps labels readable when the bar is squeezed
+  (the engine baseline follows the stylebox margins and sinks into the
+  indicator when the bar drops below its minimum height).
 - Used for: provider manager (Keys / Models / Advanced), settings (Permissions /
   Memory / Agent).
 
@@ -312,6 +322,13 @@ General rules for every component in the library:
   the dialog closes through its action buttons (and Escape). The window also
   sets `transparent` (like `PopupPanel`), otherwise the viewport clear color
   would show as a square of background behind the rounded panel corners.
+- Size clamp: before every show the dialog sets `max_size` to the editor base
+  control rect minus an 8px margin (`min_size` is pulled down first when the
+  screen cannot fit it). The engine applies the maximum after the content
+  minimum, so on a screen smaller than the content the window stops at the
+  edge: the title stays visible, pages inside scroll, and the action buttons
+  are never pushed below the clipped bottom edge. The settings and provider
+  manager pages therefore keep their bodies scrollable.
 - The dialog re-resolves the theme mode when shown and rebuilds its content when
   the editor switches light/dark while the instance is alive.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
@@ -637,7 +654,10 @@ Layout unchanged (list left, detail right) with M3 components:
 
 ## 10. Settings Dialog
 
-`CopilotMd3Dialog`, min 560x480, tabs via `CopilotMd3Tabs`:
+`CopilotMd3Dialog`, min 560x480, tabs via `CopilotMd3Tabs`. Each tab page is a
+`ScrollContainer` (vertical scroll, horizontal disabled) so the dialog minimum
+stays below the editor height; the rule and subagent lists keep a 140px minimum
+wherever the page is squeezed:
 
 1. **Permissions** — preset selection as three `CopilotMd3Radio` options with
    supporting text (Sandbox / Review / Turbo), plus a hint line that follows the
