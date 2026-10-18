@@ -329,7 +329,10 @@ static func _load_font(path: String) -> Font:
 	var font: Font = null
 	if ResourceLoader.exists(path):
 		font = load(path) as Font
-	_font_cache[path] = font
+	# Failed lookups are not cached: the import may complete later in the same
+	# editor session, and a cached null would hide the font forever.
+	if font != null:
+		_font_cache[path] = font
 	return font
 
 static func _type_entry(style: String) -> Dictionary:
