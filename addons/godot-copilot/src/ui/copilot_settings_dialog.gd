@@ -58,11 +58,49 @@ func setup(p_config: CopilotConfig) -> void:
 	refresh()
 
 func refresh() -> void:
+	if sync_scheme():
+		return
 	if config == null or _preset_radios.is_empty():
 		return
 	_refresh_permissions()
 	_refresh_memory()
 	_refresh_agent()
+
+func _on_scheme_changed() -> void:
+	# The editor theme switched mode: rebuild every widget with the new
+	# palette (the dialog is a long-lived instance).
+	_rebuild_content()
+
+func _rebuild_content() -> void:
+	if _preset_radios.is_empty():
+		return
+	_preset_radios.clear()
+	_preset_hint = null
+	_rule_list_segments = null
+	_rules_list = null
+	_rule_edit = null
+	_rule_error_label = null
+	_memory_auto_switch = null
+	_memory_prune_switch = null
+	_memory_mode_segments = null
+	_memory_model_edit = null
+	_memory_steps_spin = null
+	_memory_tail_spin = null
+	_agent_steps_spin = null
+	_subagent_list = null
+	_subagent_name_edit = null
+	_subagent_model_button = null
+	_subagent_error_label = null
+	_model_menu_ids.clear()
+	if _model_menu != null and is_instance_valid(_model_menu):
+		_model_menu.queue_free()
+	_model_menu = null
+	for child in body().get_children():
+		if child == _title_label:
+			continue
+		child.queue_free()
+	_build_ui()
+	refresh()
 
 # --- Build UI ---
 

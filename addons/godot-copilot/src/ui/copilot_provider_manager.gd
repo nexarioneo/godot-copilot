@@ -66,6 +66,53 @@ func setup(p_config: CopilotConfig) -> void:
 func refresh() -> void:
 	# Called by the plugin right before the dialog is shown again, so the
 	# lists pick up changes made elsewhere (e.g. the active model picker).
+	if sync_scheme():
+		return
+	_refresh_providers()
+
+func _on_scheme_changed() -> void:
+	# The editor theme switched mode: rebuild every widget with the new
+	# palette (the dialog is a long-lived instance).
+	_rebuild_content()
+
+func _rebuild_content() -> void:
+	if _tabs == null:
+		return
+	_tabs = null
+	_add_button = null
+	_remove_provider_button = null
+	_provider_list = null
+	_detail_title = null
+	_detail_url = null
+	_detail_key_url_button = null
+	_keys_list = null
+	_round_robin_switch = null
+	_sticky_spin = null
+	_sticky_box = null
+	_test_all_button = null
+	_stop_test_button = null
+	_active_model_button = null
+	_models_list = null
+	_import_progress = null
+	_import_button = null
+	_models_status = null
+	_kind_value = null
+	_base_url_edit = null
+	_api_type_segments = null
+	_prefix_edit = null
+	_model_menu_ids.clear()
+	_key_status.clear()
+	if _add_menu != null and is_instance_valid(_add_menu):
+		_add_menu.queue_free()
+	_add_menu = null
+	if _model_menu != null and is_instance_valid(_model_menu):
+		_model_menu.queue_free()
+	_model_menu = null
+	for child in body().get_children():
+		if child == _title_label:
+			continue
+		child.queue_free()
+	_build_ui()
 	_refresh_providers()
 
 # --- Build UI ---
