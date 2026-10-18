@@ -79,6 +79,11 @@ func _ready() -> void:
 		_scheme = CopilotMd3Scheme.for_node(self)
 	_build_body()
 	_apply()
+	# The clamp must also run while the popup is being prepared: popup_centered
+	# recenters the window after `about_to_popup`, so a clamp applied later
+	# (when the window becomes visible) could no longer fix the position.
+	if not about_to_popup.is_connected(_clamp_to_editor):
+		about_to_popup.connect(_clamp_to_editor)
 	_clamp_to_editor()
 
 func _notification(what: int) -> void:
@@ -138,13 +143,23 @@ func _clamp_to_editor() -> void:
 	var base := EditorInterface.get_base_control()
 	if base == null:
 		return
-	var limit := Vector2i(base.get_global_rect().size) - Vector2i(EDGE_MARGIN * 2, EDGE_MARGIN * 2)
+	var base_rect := base.get_global_rect()
+	var limit := Vector2i(base_rect.size) - Vector2i(EDGE_MARGIN * 2, EDGE_MARGIN * 2)
 	if limit.x <= 0 or limit.y <= 0:
 		return
 	# A minimum larger than the maximum disables the clamp entirely, so the
 	# minimum is pulled down first when the screen cannot fit it.
 	min_size = Vector2i(mini(min_size.x, limit.x), mini(min_size.y, limit.y))
 	max_size = limit
+	# The engine centers embedded windows on the whole viewport and pins a
+	# window taller than the editor area to the top, which cuts the action bar
+	# off below the edge. Nudge the window back inside the editor rect so the
+	# title and the Close button always stay reachable.
+	var origin := Vector2i(base_rect.position)
+	var max_position := origin + limit - get_size()
+	max_position.x = maxi(max_position.x, origin.x)
+	max_position.y = maxi(max_position.y, origin.y)
+	position = Vector2i(clampi(position.x, origin.x, max_position.x), clampi(position.y, origin.y, max_position.y))
 
 static func _window_has_max_size() -> bool:
 	for prop in ClassDB.class_get_property_list("Window"):
