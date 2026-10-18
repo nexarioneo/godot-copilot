@@ -32,10 +32,18 @@ static func for_node(node: Node) -> CopilotMd3Scheme:
 	return _dark_cache
 
 static func detect_mode(node: Node) -> String:
-	# Reads the editor theme base color when the caller can resolve theme
-	# values; defaults to dark, which matches the Godot editor default theme.
+	# Reads the editor theme base color. The editor theme is resolved through
+	# EditorInterface because per-node lookups fail for Window subclasses
+	# (dialogs and menus) that do not inherit the editor theme from a Control
+	# parent. Falls back to the node theme, then to dark (the editor default).
 	var base := Color("#1d1d1d")
-	if node != null and node.has_method("has_theme_color"):
+	var resolved := false
+	if Engine.is_editor_hint():
+		var editor_theme := EditorInterface.get_editor_theme()
+		if editor_theme != null and editor_theme.has_color("base_color", "Editor"):
+			base = editor_theme.get_color("base_color", "Editor")
+			resolved = true
+	if not resolved and node != null and node.has_method("has_theme_color"):
 		if node.call("has_theme_color", "base_color", "Editor") == true:
 			var theme_color: Variant = node.call("get_theme_color", "base_color", "Editor")
 			if theme_color is Color:
