@@ -7,10 +7,14 @@ extends CopilotMd3Dialog
 
 var _message_label: Label = null
 
-func configure(scheme: CopilotMd3Scheme, title_text: String, message: String, ok_text: String = "OK", danger: bool = false, cancel_text: String = "Cancel") -> void:
+func configure(scheme: CopilotMd3Scheme, title_text: String, ok_text: String = "Close", cancel_text: String = "") -> void:
 	super.configure(scheme, title_text, ok_text, cancel_text)
-	set_ok_variant(CopilotMd3Button.VARIANT_DANGER if danger else CopilotMd3Button.VARIANT_FILLED)
+
+func set_message(message: String) -> void:
 	_build_message(message)
+
+func set_danger(danger: bool) -> void:
+	set_ok_variant(CopilotMd3Button.VARIANT_DANGER if danger else CopilotMd3Button.VARIANT_FILLED)
 
 func _build_message(message: String) -> void:
 	body().custom_minimum_size.x = 360

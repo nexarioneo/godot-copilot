@@ -334,14 +334,9 @@ func _on_delete_session_pressed() -> void:
 	var session_title := agent.current_session_title()
 	var confirm := CopilotMd3Confirm.new()
 	add_child(confirm)
-	confirm.configure(
-		_scheme,
-		"Delete Session",
-		"Delete session '" + session_title + "' and its entire history?",
-		"Delete",
-		true,
-		"Cancel"
-	)
+	confirm.configure(_scheme, "Delete Session", "Delete", "Cancel")
+	confirm.set_message("Delete session '" + session_title + "' and its entire history?")
+	confirm.set_danger(true)
 	confirm.confirmed.connect(func() -> void:
 		agent.delete_session(session_id)
 		_chat_view.rebuild_from_trajectory(agent.trajectory())

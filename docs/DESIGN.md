@@ -304,8 +304,8 @@ General rules for every component in the library:
 - Note: rounded corners render in embedded-window mode (Godot editor default);
   floating OS windows use native decoration.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
-  360px message label; `danger` switches the confirm button to the danger
-  variant (used for delete confirmations).
+  360px message label (`set_message`); `set_danger(true)` switches the confirm
+  button to the danger variant (used for delete confirmations).
 - Used for: provider manager, settings, wizard, key/model editors, confirmations.
 
 ### 4.10 CopilotMd3Switch

@@ -584,14 +584,9 @@ func _on_remove_provider_pressed() -> void:
 	var provider_to_remove := _selected
 	var confirm := CopilotMd3Confirm.new()
 	add_child(confirm)
-	confirm.configure(
-		_scheme,
-		"Delete Provider",
-		"Delete provider '" + provider_to_remove + "' along with its keys and models?",
-		"Delete",
-		true,
-		"Cancel"
-	)
+	confirm.configure(_scheme, "Delete Provider", "Delete", "Cancel")
+	confirm.set_message("Delete provider '" + provider_to_remove + "' along with its keys and models?")
+	confirm.set_danger(true)
 	confirm.confirmed.connect(func() -> void:
 		config.remove_provider(provider_to_remove)
 		_selected = ""
