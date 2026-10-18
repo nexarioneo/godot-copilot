@@ -71,6 +71,40 @@ Versions follow [Semantic Versioning](https://semver.org/).
   `set_padding`, `set_corner_radii`) instead of building one-off styleboxes; the
   permission card also applies its inherited elevated surface again (`super._apply`).
 
+### Fixed
+
+- **Dialog/menu light/dark mismatch**: `CopilotMd3Scheme.detect_mode()` now reads
+  the mode from the editor theme through `EditorInterface` instead of a per-node
+  theme lookup, which fails for `Window` subclasses (dialogs and popup menus) and
+  returned a stale palette after an editor theme switch. Dialogs re-resolve the
+  mode when shown (and rebuild their content when it changed while alive).
+- **Doubled dialog panel**: dialogs are now borderless embedded windows with the
+  title drawn inside the rounded M3 panel; the editor's square window frame and
+  title bar (the "old-style" second panel) are gone.
+- **Chat text wrapper**: the editor theme draws every `RichTextLabel` with a
+  filled box and content margins; chat bodies, notice labels and tool output now
+  clear the `normal`/`focus` styleboxes so text sits directly on the card.
+- **User bubbles**: proper padding (16x10) and no dark text box inside the bubble.
+- **Composer**: one trailing action button instead of two — Send (filled) swaps
+  to Stop (tonal) while busy — inset 4px from the trailing edge instead of 16px.
+- **Switch state layer**: the halo no longer lingers as a stray circle after a
+  tap (touch devices show only the pressed halo, pointer devices keep hover).
+- **Provider badges**: always white in both modes (previously near-black in dark
+  mode, hiding the mostly black vendor logos).
+- **Menu width**: menu min width 260px so preset names are not ellipsized.
+- **Tab switching** now animates: the indicator slides (250ms) and the incoming
+  page fades in (200ms).
+- **Status strip truncation**: the state label no longer collapses to two letters
+  (`clip_text` reduced its minimum width to 1px while a spacer ate the row); the
+  model label now expands, aligns right, ellipsizes when the dock is narrow and
+  carries the full name in its tooltip.
+- **User bubble collapse**: a short message could be measured against a zero-width
+  content column (or a font that was not resolvable yet) and rendered one letter
+  per line; bubbles are now clamped to 96px, re-measured after the layout pass,
+  and the width falls back to the scroll container when the column is not laid out.
+- **Font cache**: failed font lookups are no longer cached (a lookup that ran
+  before the asset import finished used to hide Roboto for the whole session).
+
 ---
 
 ## [2.0.0] — 2026-10-17

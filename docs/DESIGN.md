@@ -292,17 +292,26 @@ General rules for every component in the library:
   tab height, title-small labels, primary label on selected / on-surface-variant
   otherwise, 3px primary indicator along the bottom of the selected tab, 1px
   `outline-variant` line under the whole bar.
+- Switching animates: the indicator slides between tab positions (250ms,
+  emphasized-decelerate) and the incoming page fades in (200ms,
+  standard-decelerate). The indicator is drawn by the component (the selected
+  tab stylebox carries no bottom border so the two do not double up).
 - Used for: provider manager (Keys / Models / Advanced), settings (Permissions /
   Memory / Agent).
 
 ### 4.9 CopilotMd3Dialog
 
-- Base: `AcceptDialog` restyled: panel `surface-container-high`, corner 28,
-  24px content padding, title headline-small, content margins per M3 dialog
-  (title-to-body 16, body-to-actions 24), actions as text buttons (label-large,
-  primary) with 8px gaps, right-aligned.
-- Note: rounded corners render in embedded-window mode (Godot editor default);
-  floating OS windows use native decoration.
+- Base: borderless embedded `AcceptDialog`: the window frame is disabled and the
+  dialog draws a single `surface-container-high` panel (corner 28, elevation 3,
+  24px padding) with an in-panel title (headline-small, on-surface) at the
+  top-left, content margins per M3 dialog (title-to-body 16, body-to-actions
+  24), actions as text buttons (label-large, primary) with 8px gaps,
+  right-aligned.
+- Note: with `borderless = true` the editor's square window decoration
+  (embedded border and title bar) is gone; there is no close icon in the frame,
+  the dialog closes through its action buttons (and Escape).
+- The dialog re-resolves the theme mode when shown and rebuilds its content when
+  the editor switches light/dark while the instance is alive.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
   360px message label (`set_message`); `set_danger(true)` switches the confirm
   button to the danger variant (used for delete confirmations).
@@ -313,6 +322,10 @@ General rules for every component in the library:
 - Base: `Button` with custom drawing: 52x32 track (corner full), 2px
   outline when off, handle 16 (off) to 24 (on) with 28 pressed swell, 200ms
   motion; colors per MATERIAL3.md §9.12; label on-surface, 16px gap.
+- State layer: a 40px `on-surface` halo under the handle, shown while the
+  button is held (10%). Pointer devices also show it on hover/focus (8%);
+  touch devices never show hover/focus halos, which would otherwise linger
+  after a tap as a stray circle.
 - Used for: auto-compact, prune tool output, key strategy round-robin, model
   enabled toggles, per-list enable switches.
 
@@ -405,9 +418,10 @@ General rules for every component in the library:
 - VBox with a `surface-container-highest` pill (corner 24, shadow level 1)
   around a flat multiline `TextEdit`, plus a supporting hint label. Grows from
   48px to 120px with the line count; Enter sends, Shift+Enter inserts a newline.
-- Trailing actions: Send (`CopilotMd3IconButton` filled) and Stop (tonal, only
-  while busy); the hint "Enter to send, Shift+Enter for a new line" shows while
-  focused.
+- Trailing action: one `CopilotMd3IconButton` inset 4px from the pill's trailing
+  edge — Send (filled, primary; disabled => 12% container / 38% icon) while idle,
+  swapping to Stop (tonal) while the agent is busy. The hint "Enter to send,
+  Shift+Enter for a new line" shows while focused.
 - Used for: the dock composer only.
 
 ### 4.21 CopilotMd3SpinField
@@ -467,12 +481,18 @@ General rules for every component in the library:
 
 | Role | Container | Shape | Align | Header |
 | --- | --- | --- | --- | --- |
-| User | `primary-container` | corner 16, 4 at bottom-right | right, max 85% width | none (bubble only) |
+| User | `primary-container` | corner 16, 4 at bottom-right | right, width between 96px and 85% of the viewport | none (bubble only) |
 | Assistant | `surface-container-high` | corner 16, 4 at bottom-left | left, full width minus 8px | role row: auto_awesome icon 16 + `Copilot` label-medium on-surface-variant |
 | Notice/system | `surface-container-low` | corner 12 | left | info icon + label per severity |
 | Tool row | `surface-container-low` + 1px `outline-variant` | corner 12, 36px min height | left, indented 8px | leading tool icon 18, tool name label-large on-surface, args body-small on-surface-variant, status chip |
 
-- Message body: body-medium, selectable; user text may be selectable too.
+- Message body: body-medium, selectable; user text may be selectable too. The
+  editor theme's filled `RichTextLabel` box is cleared, so text sits directly on
+  the card surface.
+- User bubble padding is 16x10; the assistant card uses the same vertical padding
+  with 24px trailing room for the streaming caret. The bubble is sized from a
+  measured text width (clamped to the 96px..85% range) and re-measured when the
+  view is laid out, so it never collapses into a one-letter-per-line column.
 - Code blocks inside messages: `surface-container-lowest`, corner 12, 12px
   padding, editor mono font; inline code uses a tinted run, no background box.
 - Hovering a message shows a small trailing action row: Copy (always), Retry
@@ -550,15 +570,17 @@ composer:
 - Composer: `CopilotMd3Composer` (section 4.20): `surface-container-highest`
   fill, corner full (24 when multi-line), 48px collapsed height growing to 120px,
   16px padding, body-medium; placeholder "Message Copilot...".
-- Trailing in-pill actions: Send (`CopilotMd3IconButton` filled, primary; disabled
-  => 12% container / 38% icon) and Stop (`CopilotMd3IconButton` tonal, visible
-  only while busy).
+- Trailing in-pill action: a single `CopilotMd3IconButton` — Send (filled,
+  primary; disabled => 12% container / 38% icon) while idle, swapping to Stop
+  (tonal) while the agent is busy; inset 4px from the pill's trailing edge.
 - Enter sends, Shift+Enter inserts a newline; the hint "Enter to send,
   Shift+Enter for a new line" shows as supporting text under the composer while
   it is focused (body-small, on-surface-variant).
 - Focus returns to the composer after a turn finishes.
 - Status strip (28px): left = 6px state dot + label-small state text; right =
-  active `provider/model` label-small on-surface-variant. States: Ready
+  active `provider/model` label-small on-surface-variant. The state text keeps
+  its full width; the model label expands into the leftover space, aligns right
+  and ellipsizes first on a narrow dock (full text in its tooltip). States: Ready
   (`status-success`), Thinking/Running (`status-warning`), Streaming (`primary`),
   Waiting for permission (`status-warning`), Error (`error`), Canceled
   (`on-surface-variant`).
@@ -690,15 +712,18 @@ icons never carry color alone (always paired with text or tooltip).
 ## 12. Light/Dark Behavior
 
 - The dock detects the editor theme (base color brightness) at creation and picks
-  `CopilotMd3Scheme.light()` or `dark()`; dialogs receive the active scheme from
-  the dock.
+  `CopilotMd3Scheme.light()` or `dark()`. Dialogs and menus resolve the mode from
+  the editor theme via `EditorInterface` (Window nodes do not inherit the editor
+  theme through a Control parent) and re-resolve it whenever they are shown again.
 - Both schemes use the full role set from MATERIAL3.md §3; extension roles have
   light/dark pairs in `CopilotMd3Tokens`.
 - Provider logos: mono logos render black on the white badge in both modes;
-  colored logos are used as-is (verified contrast on both surface tones).
+  colored logos are used as-is (verified contrast on both surface tones). The
+  badge itself is always white, not `surface-container-lowest`.
 - Shadows are softened in dark mode; containers carry depth instead.
-- Switching editor theme while the plugin is loaded is out of scope for the first
-  rollout (dialog/UI reopen picks up the new scheme; full live-switch later).
+- Live switching: the dock re-applies the new scheme to its whole tree; the
+  provider manager and settings dialog rebuild their content when the mode
+  changes; other dialogs pick the new mode up when reopened.
 
 ---
 
@@ -756,8 +781,8 @@ and no `.tscn` is introduced.
       tool rows show icon, status, and collapsible output.
 - [ ] Permission card: scope chips, location chip, remember checkbox, and the
       three action buttons behave and read clearly; the card never blocks the dock.
-- [ ] Composer pill grows for multi-line input; Enter sends; Stop appears only
-      while busy.
+- [ ] Composer pill grows for multi-line input; Enter sends; the single trailing
+      action turns into Stop while busy and sits flush with the pill's edge.
 - [ ] Status strip shows state text + dot and the active provider/model.
 - [ ] Provider manager: list selection, tabs, key/model rows, wizard validation,
       and confirmations all use the new components.
