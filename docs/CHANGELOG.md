@@ -80,7 +80,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
   mode when shown (and rebuild their content when it changed while alive).
 - **Doubled dialog panel**: dialogs are now borderless embedded windows with the
   title drawn inside the rounded M3 panel; the editor's square window frame and
-  title bar (the "old-style" second panel) are gone.
+  title bar (the "old-style" second panel) are gone. The window is also marked
+  `transparent` (as `PopupPanel` does) so the viewport clear color cannot show
+  through as a square behind the rounded corners.
 - **Chat text wrapper**: the editor theme draws every `RichTextLabel` with a
   filled box and content margins; chat bodies, notice labels and tool output now
   clear the `normal`/`focus` styleboxes so text sits directly on the card.

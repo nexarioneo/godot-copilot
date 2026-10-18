@@ -27,6 +27,10 @@ func configure(scheme: CopilotMd3Scheme, title_text: String, ok_text: String = "
 	title = title_text
 	ok_button_text = ok_text
 	borderless = true
+	# AcceptDialog windows are opaque by default, which leaves a square of the
+	# viewport clear color behind our rounded panel; PopupPanel sets the same
+	# flag so embedded corners composite cleanly.
+	transparent = true
 	_build_body()
 	if not cancel_text.is_empty() and _cancel_button == null:
 		_cancel_button = add_cancel_button(cancel_text)
@@ -66,8 +70,10 @@ func _on_scheme_changed() -> void:
 func _ready() -> void:
 	# Own title inside the panel: the embedded window frame draws the default
 	# editor decoration (square border + title bar) on top of our rounded
-	# panel, so the dialog is borderless and titles itself.
+	# panel, so the dialog is borderless and titles itself. Transparency keeps
+	# the area outside the rounded panel corners see-through.
 	borderless = true
+	transparent = true
 	if _scheme == null:
 		_scheme = CopilotMd3Scheme.for_node(self)
 	_build_body()

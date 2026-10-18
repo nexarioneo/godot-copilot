@@ -309,7 +309,9 @@ General rules for every component in the library:
   right-aligned.
 - Note: with `borderless = true` the editor's square window decoration
   (embedded border and title bar) is gone; there is no close icon in the frame,
-  the dialog closes through its action buttons (and Escape).
+  the dialog closes through its action buttons (and Escape). The window also
+  sets `transparent` (like `PopupPanel`), otherwise the viewport clear color
+  would show as a square of background behind the rounded panel corners.
 - The dialog re-resolves the theme mode when shown and rebuilds its content when
   the editor switches light/dark while the instance is alive.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
