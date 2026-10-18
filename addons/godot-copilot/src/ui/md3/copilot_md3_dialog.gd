@@ -131,8 +131,9 @@ func _clamp_to_editor() -> void:
 	if not Engine.is_editor_hint():
 		return
 	# Window.max_size exists from Godot 4.7; older engines keep the content
-	# minimum as the only limit.
-	if not ClassDB.class_has_property("Window", "max_size"):
+	# minimum as the only limit. ClassDB has no class_has_property() helper,
+	# so the property list is scanned by name instead.
+	if not _window_has_max_size():
 		return
 	var base := EditorInterface.get_base_control()
 	if base == null:
@@ -144,6 +145,12 @@ func _clamp_to_editor() -> void:
 	# minimum is pulled down first when the screen cannot fit it.
 	min_size = Vector2i(mini(min_size.x, limit.x), mini(min_size.y, limit.y))
 	max_size = limit
+
+static func _window_has_max_size() -> bool:
+	for prop in ClassDB.class_get_property_list("Window"):
+		if prop.get("name", "") == "max_size":
+			return true
+	return false
 
 func _style_action(button: Button, variant: String) -> void:
 	if button == null:
