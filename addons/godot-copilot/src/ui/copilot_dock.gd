@@ -21,7 +21,7 @@ var _scheme: CopilotMd3Scheme = null
 var _surface: PanelContainer = null
 var _title_label: Label = null
 var _sessions_button: CopilotMd3IconButton = null
-var _session_popup: PopupMenu = null
+var _session_menu: CopilotMd3Menu = null
 var _chat_view: CopilotChatView = null
 var _permission_card: CopilotPermissionCard = null
 var _jump_chip: CopilotMd3Chip = null
@@ -144,10 +144,11 @@ func _build_header(parent: Control) -> void:
 	_header_button(header, "key", "Provider Manager (manage API providers and models)", func() -> void: provider_manager_requested.emit())
 	_header_button(header, "delete_sweep", "Clear the chat view", _on_clear_pressed)
 
-	_session_popup = PopupMenu.new()
-	_session_popup.name = "session_popup"
-	_session_popup.id_pressed.connect(_on_session_popup_pressed)
-	add_child(_session_popup)
+	_session_menu = CopilotMd3Menu.new()
+	_session_menu.name = "session_menu"
+	_session_menu.configure(_scheme)
+	_session_menu.item_selected.connect(_on_session_menu_selected)
+	add_child(_session_menu)
 
 	resized.connect(_on_dock_resized)
 
@@ -269,7 +270,8 @@ func _apply_scheme() -> void:
 	_model_label.add_theme_color_override("font_color", _scheme.color("on-surface-variant"))
 	for button in _header_buttons:
 		button.set_scheme(_scheme)
-	_style_session_popup()
+	if _session_menu != null:
+		_session_menu.set_scheme(_scheme)
 	_update_status(agent.state() if agent != null else "idle")
 
 # --- Sessions ---
@@ -280,30 +282,31 @@ func _on_dock_resized() -> void:
 
 func _on_sessions_pressed() -> void:
 	_refresh_sessions()
-	_style_session_popup()
-	var anchor := _sessions_button.get_screen_position() + Vector2(0, _sessions_button.size.y + 4)
-	_session_popup.popup(Rect2i(Vector2i(anchor), Vector2i.ZERO))
+	_session_menu.popup_on(_sessions_button)
 
 func _refresh_sessions() -> void:
-	if agent == null or _session_popup == null:
+	if agent == null or _session_menu == null:
 		return
 	_sessions = agent.list_sessions()
 	var current_id := agent.current_session_id()
-	_session_popup.clear()
+	_session_menu.clear_items()
+	var checked_id := -1
 	for i in range(_sessions.size()):
 		var session: Dictionary = _sessions[i]
 		var title := str(session.get("title", "Untitled"))
 		var steps := int(session.get("step_count", 0))
-		_session_popup.add_item(title + "  (" + str(steps) + " steps)", SESSION_ITEM_BASE + i)
-		_session_popup.set_item_checked(_session_popup.item_count - 1, str(session.get("id", "")) == current_id)
+		var item_id := _session_menu.add_item(title + "  (" + str(steps) + " steps)", SESSION_ITEM_BASE + i)
+		if str(session.get("id", "")) == current_id:
+			checked_id = item_id
 	if _sessions.is_empty():
-		_session_popup.add_item("No sessions yet", SESSION_ITEM_BASE)
-		_session_popup.set_item_disabled(0, true)
-	_session_popup.add_separator()
-	_session_popup.add_item("Delete current session", DELETE_ITEM_ID)
-	_session_popup.set_item_disabled(_session_popup.item_count - 1, current_id.is_empty())
+		_session_menu.add_item("No sessions yet", SESSION_ITEM_BASE)
+	if not current_id.is_empty():
+		_session_menu.add_separator()
+		_session_menu.add_item("Delete current session", DELETE_ITEM_ID, "", "", true)
+	if checked_id >= 0:
+		_session_menu.set_checked_id(checked_id)
 
-func _on_session_popup_pressed(id: int) -> void:
+func _on_session_menu_selected(id: int) -> void:
 	if agent == null:
 		return
 	if id == DELETE_ITEM_ID:
@@ -329,11 +332,16 @@ func _on_delete_session_pressed() -> void:
 		return
 	var session_id := agent.current_session_id()
 	var session_title := agent.current_session_title()
-	var confirm := ConfirmationDialog.new()
-	confirm.title = "Delete Session"
-	confirm.dialog_text = "Delete session '" + session_title + "' and its entire history?"
-	confirm.ok_button_text = "Delete"
+	var confirm := CopilotMd3Confirm.new()
 	add_child(confirm)
+	confirm.configure(
+		_scheme,
+		"Delete Session",
+		"Delete session '" + session_title + "' and its entire history?",
+		"Delete",
+		true,
+		"Cancel"
+	)
 	confirm.confirmed.connect(func() -> void:
 		agent.delete_session(session_id)
 		_chat_view.rebuild_from_trajectory(agent.trajectory())
@@ -505,31 +513,4 @@ static func state_role(state: String) -> String:
 			return "error"
 	return "on-surface-variant"
 
-# --- Session popup styling (interim until CopilotMd3Menu lands in phase 4) ---
-
-func _style_session_popup() -> void:
-	if _scheme == null or _session_popup == null:
-		return
-	_session_popup.add_theme_stylebox_override("panel", _scheme.box("surface-container", CopilotMd3Tokens.corner_radius("medium", Vector2.ZERO), "outline-variant", 1, 2))
-	var hover := _scheme.box("", CopilotMd3Tokens.corner_radius("small", Vector2.ZERO))
-	hover.bg_color = _scheme.alpha("on-surface", 0.08)
-	hover.content_margin_left = CopilotMd3Tokens.spacing("s")
-	hover.content_margin_right = CopilotMd3Tokens.spacing("s")
-	_session_popup.add_theme_stylebox_override("hover", hover)
-	var separator := StyleBoxLine.new()
-	separator.color = _scheme.color("outline-variant")
-	separator.thickness = 1
-	_separator_inset(separator)
-	_session_popup.add_theme_stylebox_override("separator", separator)
-	var font := CopilotMd3Tokens.font_for_weight(CopilotMd3Tokens.type_weight("label-large"))
-	if font != null:
-		_session_popup.add_theme_font_override("font", font)
-	_session_popup.add_theme_font_size_override("font_size", CopilotMd3Tokens.type_size("label-large"))
-	_session_popup.add_theme_color_override("font_color", _scheme.color("on-surface"))
-	_session_popup.add_theme_color_override("font_hover_color", _scheme.color("on-surface"))
-	_session_popup.add_theme_color_override("font_disabled_color", _scheme.disabled_content("on-surface"))
-	_session_popup.add_theme_color_override("font_separator_color", _scheme.color("on-surface-variant"))
-
-func _separator_inset(style: StyleBoxLine) -> void:
-	style.grow_begin = CopilotMd3Tokens.spacing("s")
-	style.grow_end = CopilotMd3Tokens.spacing("s")
+# --- Session menu styling moved to CopilotMd3Menu ---
