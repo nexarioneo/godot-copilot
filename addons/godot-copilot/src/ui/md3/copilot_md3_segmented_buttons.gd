@@ -19,6 +19,8 @@ var _selected := 0
 var _row: HBoxContainer = null
 var _buttons: Array[Button] = []
 var _dividers: Array[CopilotMd3Divider] = []
+var _boxes: Array[Dictionary] = []
+var _content_colors: Array[Color] = []
 
 func configure(scheme: CopilotMd3Scheme, items: PackedStringArray, selected: int = 0) -> void:
 	_scheme = scheme
@@ -77,6 +79,8 @@ func _rebuild_segments() -> void:
 		child.queue_free()
 	_buttons.clear()
 	_dividers.clear()
+	_boxes.clear()
+	_content_colors.clear()
 	for i in range(_items.size()):
 		if i > 0:
 			var divider := CopilotMd3Divider.new()
@@ -94,6 +98,17 @@ func _rebuild_segments() -> void:
 		CopilotMd3Tokens.apply_text(segment, "label-large")
 		_row.add_child(segment)
 		_buttons.append(segment)
+		# Stylebox overrides are registered once per segment; selection changes
+		# only mutate the cached boxes (recreating them on every tap churns the
+		# theme cache and makes the group feel stuck).
+		var boxes := _make_boxes(i, _items.size())
+		_boxes.append(boxes)
+		_content_colors.append(Color(0.0, 0.0, 0.0, 0.0))
+		segment.add_theme_stylebox_override("normal", boxes["normal"])
+		segment.add_theme_stylebox_override("hover", boxes["hover"])
+		segment.add_theme_stylebox_override("pressed", boxes["pressed"])
+		segment.add_theme_stylebox_override("focus", boxes["focus"])
+		segment.add_theme_stylebox_override("disabled", boxes["disabled"])
 	_update_segment_styles()
 
 func _on_segment_pressed(index: int) -> void:
@@ -112,45 +127,56 @@ func _apply() -> void:
 	_update_segment_styles()
 
 func _update_segment_styles() -> void:
-	if _scheme == null:
+	if _scheme == null or _boxes.size() != _buttons.size():
 		return
-	var count := _buttons.size()
-	for i in range(count):
+	for i in range(_buttons.size()):
 		var segment := _buttons[i]
-		var first := i == 0
-		var last := i == count - 1
-		var radius_left := HEIGHT / 2 if first else 0
-		var radius_right := HEIGHT / 2 if last else 0
-		var selected_fill := _scheme.color("secondary-container") if _selected == i else Color(0.0, 0.0, 0.0, 0.0)
-		var content_role := "on-secondary-container" if _selected == i else "on-surface"
+		var boxes: Dictionary = _boxes[i]
+		var is_selected := _selected == i
+		var content_role := "on-secondary-container" if is_selected else "on-surface"
 		var content_color := _scheme.color(content_role)
-		var hover_fill := _scheme.state_fill(selected_fill, content_color, HOVER_OPACITY)
-		var pressed_fill := _scheme.state_fill(selected_fill, content_color, PRESSED_OPACITY)
+		var base_fill := _scheme.color("secondary-container") if is_selected else Color(0.0, 0.0, 0.0, 0.0)
 		var disabled_fill := Color(0.0, 0.0, 0.0, 0.0)
-		if _selected == i:
+		if is_selected:
 			disabled_fill = _scheme.alpha("on-surface", CopilotMd3Tokens.DISABLED_CONTAINER_OPACITY)
-		segment.add_theme_stylebox_override("normal", _segment_box(selected_fill, radius_left, radius_right))
-		segment.add_theme_stylebox_override("hover", _segment_box(hover_fill, radius_left, radius_right))
-		segment.add_theme_stylebox_override("pressed", _segment_box(pressed_fill, radius_left, radius_right))
-		segment.add_theme_stylebox_override("focus", _focus_box(radius_left, radius_right))
-		segment.add_theme_stylebox_override("disabled", _segment_box(disabled_fill, radius_left, radius_right))
-		segment.add_theme_color_override("font_color", content_color)
-		segment.add_theme_color_override("font_hover_color", content_color)
-		segment.add_theme_color_override("font_pressed_color", content_color)
-		segment.add_theme_color_override("font_focus_color", content_color)
-		segment.add_theme_color_override("font_disabled_color", _scheme.disabled_content("on-surface"))
-		segment.add_theme_color_override("icon_normal_color", content_color)
-		segment.add_theme_color_override("icon_hover_color", content_color)
-		segment.add_theme_color_override("icon_pressed_color", content_color)
-		segment.add_theme_color_override("icon_focus_color", content_color)
-		segment.add_theme_color_override("icon_disabled_color", _scheme.disabled_content("on-surface"))
+		(boxes["normal"] as StyleBoxFlat).bg_color = base_fill
+		(boxes["hover"] as StyleBoxFlat).bg_color = _scheme.state_fill(base_fill, content_color, HOVER_OPACITY)
+		(boxes["pressed"] as StyleBoxFlat).bg_color = _scheme.state_fill(base_fill, content_color, PRESSED_OPACITY)
+		(boxes["disabled"] as StyleBoxFlat).bg_color = disabled_fill
+		(boxes["focus"] as StyleBoxFlat).border_color = _scheme.color("primary")
+		# Only the colors of the cached boxes change here; mutating them and
+		# asking for a redraw avoids rebuilding theme items on every tap.
+		if _content_colors[i] != content_color:
+			_content_colors[i] = content_color
+			segment.add_theme_color_override("font_color", content_color)
+			segment.add_theme_color_override("font_hover_color", content_color)
+			segment.add_theme_color_override("font_pressed_color", content_color)
+			segment.add_theme_color_override("font_focus_color", content_color)
+			segment.add_theme_color_override("font_disabled_color", _scheme.disabled_content("on-surface"))
+			segment.add_theme_color_override("icon_normal_color", content_color)
+			segment.add_theme_color_override("icon_hover_color", content_color)
+			segment.add_theme_color_override("icon_pressed_color", content_color)
+			segment.add_theme_color_override("icon_focus_color", content_color)
+			segment.add_theme_color_override("icon_disabled_color", _scheme.disabled_content("on-surface"))
+		segment.queue_redraw()
 	for i in range(_dividers.size()):
 		var divider := _dividers[i]
 		divider.visible = _selected != i and _selected != i + 1
 
-func _segment_box(fill_color: Color, radius_left: int, radius_right: int) -> StyleBoxFlat:
+func _make_boxes(index: int, count: int) -> Dictionary:
+	var radius_left := HEIGHT / 2 if index == 0 else 0
+	var radius_right := HEIGHT / 2 if index == count - 1 else 0
+	return {
+		"normal": _segment_box(radius_left, radius_right),
+		"hover": _segment_box(radius_left, radius_right),
+		"pressed": _segment_box(radius_left, radius_right),
+		"focus": _focus_box(radius_left, radius_right),
+		"disabled": _segment_box(radius_left, radius_right),
+	}
+
+func _segment_box(radius_left: int, radius_right: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = fill_color
+	sb.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	sb.corner_radius_top_left = radius_left
 	sb.corner_radius_bottom_left = radius_left
 	sb.corner_radius_top_right = radius_right
@@ -164,6 +190,8 @@ func _segment_box(fill_color: Color, radius_left: int, radius_right: int) -> Sty
 func _focus_box(radius_left: int, radius_right: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.draw_center = false
+	if not CopilotMd3Tokens.focus_ring_visible():
+		return sb
 	sb.set_border_width_all(CopilotMd3Tokens.FOCUS_RING_WIDTH)
 	sb.border_color = _scheme.color("primary")
 	sb.corner_radius_top_left = radius_left

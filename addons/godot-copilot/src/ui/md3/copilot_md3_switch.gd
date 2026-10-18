@@ -29,6 +29,7 @@ var _thumb_on_color := Color(0.0, 0.0, 0.0, 0.0)
 var _thumb_off_color := Color(0.0, 0.0, 0.0, 0.0)
 var _icon_color := Color(0.0, 0.0, 0.0, 0.0)
 var _icon_texture: Texture2D = null
+var _tween: Tween = null
 
 func configure(scheme: CopilotMd3Scheme, checked: bool = false, icon_name: String = "") -> void:
 	_scheme = scheme
@@ -87,12 +88,15 @@ func _on_toggled(pressed: bool) -> void:
 	_animate_to(1.0 if pressed else 0.0)
 
 func _animate_to(target: float) -> void:
-	if not is_inside_tree():
-		_progress = target
-		queue_redraw()
+	# A new toggle cancels the running tween instead of stacking a second one
+	# on `_progress`, which would fight the first and read as a stutter.
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	if not is_inside_tree() or is_equal_approx(_progress, target):
+		_set_progress(target)
 		return
-	var tween := create_tween()
-	CopilotMd3Motion.animate_eased(tween, _set_progress, _progress, target, CopilotMd3Motion.duration_seconds("short4"), "emphasized")
+	_tween = create_tween()
+	CopilotMd3Motion.animate_eased(_tween, _set_progress, _progress, target, CopilotMd3Motion.duration_seconds("short4"), "emphasized")
 
 func _set_progress(value: float) -> void:
 	_progress = value
