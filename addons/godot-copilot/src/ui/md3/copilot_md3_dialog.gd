@@ -130,6 +130,10 @@ func _clamp_to_editor() -> void:
 	# tall pages scroll instead of pushing the window off screen.
 	if not Engine.is_editor_hint():
 		return
+	# Window.max_size exists from Godot 4.7; older engines keep the content
+	# minimum as the only limit.
+	if not ClassDB.class_has_property("Window", "max_size"):
+		return
 	var base := EditorInterface.get_base_control()
 	if base == null:
 		return

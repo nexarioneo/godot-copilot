@@ -324,11 +324,12 @@ General rules for every component in the library:
   would show as a square of background behind the rounded panel corners.
 - Size clamp: before every show the dialog sets `max_size` to the editor base
   control rect minus an 8px margin (`min_size` is pulled down first when the
-  screen cannot fit it). The engine applies the maximum after the content
-  minimum, so on a screen smaller than the content the window stops at the
-  edge: the title stays visible, pages inside scroll, and the action buttons
-  are never pushed below the clipped bottom edge. The settings and provider
-  manager pages therefore keep their bodies scrollable.
+  screen cannot fit it; `Window.max_size` exists from Godot 4.7, older engines
+  keep the content minimum as the only limit). The engine applies the maximum
+  after the content minimum, so on a screen smaller than the content the window
+  stops at the edge: the title stays visible, pages inside scroll, and the
+  action buttons are never pushed below the clipped bottom edge. The settings
+  and provider manager pages therefore keep their bodies scrollable.
 - The dialog re-resolves the theme mode when shown and rebuilds its content when
   the editor switches light/dark while the instance is alive.
 - `CopilotMd3Confirm` (implemented) is the companion: `CopilotMd3Dialog` with a
