@@ -179,6 +179,10 @@ godot-copilot/
 - Check `git status` before and after changes; see [AGENTS.md](AGENTS.md) for the
   full workflow.
 
+## M8ven Verification
+
+[![M8ven Score](https://m8ven.ai/badge/mcp/nexarioneo-godot-copilot-1b5pjh?v=bc6b0d7f526f69fd545b326b24e6bc9d)](https://m8ven.ai/mcp/nexarioneo-godot-copilot-1b5pjh?s=readme)
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Copyright (c) 2026 **Nexarioneo**.
