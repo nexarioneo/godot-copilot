@@ -10,7 +10,7 @@ const VARIANT_STANDARD := "standard"
 const SIZE := 40
 const SIZE_COMPACT := 32
 const BUTTON_ICON_SIZE := 24
-const ICON_SIZE_COMPACT := 20
+const COMPACT_ICON_SIZE := 20
 
 func _ready() -> void:
 	super._ready()
@@ -29,7 +29,7 @@ func _apply() -> void:
 	if _scheme == null:
 		return
 	var target_size := SIZE_COMPACT if _compact else SIZE
-	var icon_size := ICON_SIZE_COMPACT if _compact else BUTTON_ICON_SIZE
+	var icon_size := COMPACT_ICON_SIZE if _compact else BUTTON_ICON_SIZE
 	custom_minimum_size = Vector2(target_size, target_size)
 	add_theme_constant_override("icon_max_width", icon_size)
 	_connect_toggle()

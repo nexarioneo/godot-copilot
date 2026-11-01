@@ -105,6 +105,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Icon button parse error**: `CopilotMd3IconButton` redeclared
+  `ICON_SIZE_COMPACT`, which it already inherited from `CopilotMd3Button`; the
+  compile failure made every `CopilotMd3IconButton.new()` return null and broke
+  the dock and composer. The compact icon size is now `COMPACT_ICON_SIZE`.
 - **Dialog/menu light/dark mismatch**: `CopilotMd3Scheme.detect_mode()` now reads
   the mode from the editor theme through `EditorInterface` instead of a per-node
   theme lookup, which fails for `Window` subclasses (dialogs and popup menus) and
