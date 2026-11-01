@@ -181,7 +181,7 @@ godot-copilot/
 
 ## M8ven Verification
 
-[![M8ven Score](https://m8ven.ai/badge/mcp/nexarioneo-godot-copilot-1b5pjh?v=bc6b0d7f526f69fd545b326b24e6bc9d)](https://m8ven.ai/mcp/nexarioneo-godot-copilot-1b5pjh?s=readme)
+[![M8ven Score](https://m8ven.ai/badge/mcp/nexarioneo-godot-copilot-1b5pjh)](https://m8ven.ai/mcp/nexarioneo-godot-copilot-1b5pjh?s=readme)
 
 ## License
 
